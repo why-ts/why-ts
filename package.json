@@ -1,0 +1,37 @@
+{
+  "name": "@why-ts/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "dependencies": {
+    "axios": "^1.6.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@nx/esbuild": "19.5.6",
+    "@nx/eslint": "19.5.6",
+    "@nx/eslint-plugin": "19.5.6",
+    "@nx/jest": "19.5.6",
+    "@nx/js": "19.5.6",
+    "@nx/node": "19.5.6",
+    "@nx/workspace": "19.5.6",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
+    "@types/jest": "^29.4.0",
+    "@types/node": "~18.16.9",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "esbuild": "^0.19.2",
+    "eslint": "~8.57.0",
+    "eslint-config-prettier": "^9.0.0",
+    "jest": "^29.4.1",
+    "jest-environment-node": "^29.4.1",
+    "nx": "19.5.6",
+    "prettier": "^2.6.2",
+    "ts-jest": "^29.1.0",
+    "ts-node": "10.9.1",
+    "typescript": "~5.5.2"
+  }
+}
