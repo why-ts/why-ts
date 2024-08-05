@@ -2,7 +2,6 @@ import { command } from './command';
 import * as o from './option';
 import { program } from './program';
 
-jest.mock('figlet/importable-fonts/Standard', () => undefined);
 describe('Program', () => {
   const slient = program({
     logger: {
@@ -20,16 +19,19 @@ describe('Program', () => {
 
   it('should run a command and return args and results', async () => {
     expect(await p.run(['c1', '--foo', 'bar'])).toEqual({
+      kind: 'command',
       command: 'c1',
       args: expect.objectContaining({ foo: 'bar' }),
       result: 'bar',
     });
     expect(await p.run(['c2', '--bar', 'baz'])).toEqual({
+      kind: 'command',
       command: 'c2',
       args: expect.objectContaining({ bar: 'baz' }),
       result: false,
     });
     expect(await p.run(['c2', '--bar', 'bar'])).toEqual({
+      kind: 'command',
       command: 'c2',
       args: expect.objectContaining({ bar: 'bar' }),
       result: true,
@@ -58,7 +60,7 @@ describe('Program', () => {
       command().handle(() => 'c2')
     );
 
-    await expect(p1.run(['c2'])).rejects.toThrowError('Command "c2" not found');
-    await expect(p2.run(['c1'])).rejects.toThrowError('Command "c1" not found');
+    await expect(p1.run(['c2'])).rejects.toThrow('Command "c2" not found');
+    await expect(p2.run(['c1'])).rejects.toThrow('Command "c1" not found');
   });
 });

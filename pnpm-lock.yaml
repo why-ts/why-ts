@@ -11,9 +11,6 @@ dependencies:
   change-case:
     specifier: ^4.1.2
     version: 4.1.2
-  figlet:
-    specifier: ^1.7.0
-    version: 1.7.0
   minimist:
     specifier: ^1.2.8
     version: 1.2.8
@@ -61,9 +58,6 @@ devDependencies:
   '@swc/helpers':
     specifier: ~0.5.11
     version: 0.5.12
-  '@types/figlet':
-    specifier: ^1.5.8
-    version: 1.5.8
   '@types/jest':
     specifier: ^29.4.0
     version: 29.5.12
@@ -2823,10 +2817,6 @@ packages:
       '@babel/types': 7.25.2
     dev: true
 
-  /@types/figlet@1.5.8:
-    resolution: {integrity: sha512-G22AUvy4Tl95XLE7jmUM8s8mKcoz+Hr+Xm9W90gJsppJq9f9tHvOGkrpn4gRX0q/cLtBdNkWtWCKDg2UDZoZvQ==}
-    dev: true
-
   /@types/graceful-fs@4.1.9:
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
     dependencies:
@@ -3972,12 +3962,6 @@ packages:
     dependencies:
       bser: 2.1.1
     dev: true
-
-  /figlet@1.7.0:
-    resolution: {integrity: sha512-gO8l3wvqo0V7wEFLXPbkX83b7MVjRrk1oRLfYlZXol8nEpb/ON9pcKLI4qpBv5YtOTfrINtqb7b40iYY2FTWFg==}
-    engines: {node: '>= 0.4.0'}
-    hasBin: true
-    dev: false
 
   /figures@3.2.0:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}

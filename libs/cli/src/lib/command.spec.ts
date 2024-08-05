@@ -1,8 +1,6 @@
 import { command } from './command';
 import * as o from './option';
 
-jest.mock('figlet/importable-fonts/Standard', () => undefined);
-
 const CHOICES = ['bar', 'baz'] as const;
 describe('Command', () => {
   const slient = command({

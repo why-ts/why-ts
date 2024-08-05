@@ -62,7 +62,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
         .with([P.union('help', '--help', '-h')], async () => {
           // show global help
           logger.log(this.help());
-          return { help: true };
+          return { kind: 'help' };
         })
         .otherwise(async () => {
           if (!command) {
@@ -116,11 +116,15 @@ class Program<Commands extends GenericCommands = EmptyObject> {
       .with([P.union('--help', '-h')], async () => {
         // show command help
         config.logger?.log(command.help());
-        return { help: true };
+        return { kind: 'help' };
       })
       .otherwise(async () => {
         const output = await command.run(argv, config);
-        return { command: name, ...output } as Output<Commands>;
+        return {
+          kind: 'command',
+          command: name,
+          ...output,
+        } as Output<Commands>;
       });
   }
 }
@@ -128,12 +132,12 @@ class Program<Commands extends GenericCommands = EmptyObject> {
 type GenericCommands = { readonly [K: string]: Command<any, any> };
 
 type Output<Commands extends GenericCommands> =
-  | UnionFromRecord<{
+  | ({ kind: 'command' } & UnionFromRecord<{
       [CommandName in keyof Commands]: InferCommandOutput<
         Commands[CommandName]
       >;
-    }>
-  | { help: true };
+    }>)
+  | { kind: 'help' };
 
 type InferCommandOutput<C extends Command<any, any>> = C extends Command<
   infer O,
