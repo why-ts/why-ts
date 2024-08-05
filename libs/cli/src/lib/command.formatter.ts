@@ -1,25 +1,20 @@
 import { match } from 'ts-pattern';
 import { TYPE, type Option, type OptionChoicesVariant } from './option.types';
 import { CommandMeta as Meta } from './types';
-
-// unfortunately, table-layout does not have types
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import Table from 'table-layout';
+import { getBorderCharacters, table } from 'table';
+import { getTtyWidth, maxLength } from './util';
 
 export type HelpFormatter = (
   meta: Meta,
   options: Record<string, Option>
 ) => string;
 
-function table<T>(arr: T[]) {
-  return new Table(arr, { maxWidth: process.stdout.columns }).toString();
-}
-
 const defaultHelpFormatter: HelpFormatter = (
   meta: Meta,
   options: Record<string, Option>
 ): string => {
+  const width = getTtyWidth();
+
   function printOptionType(option: Option) {
     return match(option[TYPE])
       .with(
@@ -30,16 +25,38 @@ const defaultHelpFormatter: HelpFormatter = (
       .otherwise((type) => `[${type}]`);
   }
   function printOptions(options: [string, Option][]) {
-    return table(
-      options.map(([key, option]) => ({
-        key: `--${key}`,
-        description: option.description,
-        type: printOptionType(option),
-      }))
-    );
+    const data = options.map(([key, option]) => [
+      `--${key}`,
+      printOptionType(option),
+      option.description ?? '',
+    ]);
+
+    return table(data, {
+      border: getBorderCharacters('void'),
+      columns: (() => {
+        const width1 = maxLength(data.map(([v]) => v));
+        const width2 = Math.min(24, maxLength(data.map(([, v]) => v)));
+        return [
+          { paddingLeft: 2, width: width1 },
+          { paddingLeft: 4, width: width2, wrapWord: true },
+          {
+            paddingLeft: 4,
+            width: width - width1 - width2 - 16,
+            wrapWord: true,
+          },
+        ];
+      })(),
+      drawHorizontalLine: () => false,
+    });
   }
 
-  const parts = [meta?.description, meta?.description && '', ''];
+  const parts = [
+    meta?.description &&
+      table([[meta.description]], {
+        border: getBorderCharacters('void'),
+        columns: [{ paddingLeft: 0, width: width - 4, wrapWord: true }],
+      }),
+  ];
 
   function addOptionsSection(required: boolean) {
     match(
@@ -53,8 +70,7 @@ const defaultHelpFormatter: HelpFormatter = (
           parts.push(
             `${required ? 'Required' : 'Optional'} Flags:`,
             '',
-            printOptions(o),
-            ''
+            printOptions(o)
           )
       )
       .otherwise(() => undefined);

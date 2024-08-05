@@ -33,7 +33,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/why-ts-e2e/**/*"]
+      "exclude": ["apps/why-ts-e2e/**/*", "example-cli-e2e/**/*"]
     }
   ],
   "nxCloudAccessToken": "Y2FhODM1NTQtYWNkYS00ODkxLWIzNDQtNjk0MjQzYmI0MGIzfHJlYWQtd3JpdGU="
