@@ -1,10 +1,8 @@
 import { P, match } from 'ts-pattern';
-import defaultLogger from './config/logger';
 import { Command } from './command';
+import defaultLogger from './config/logger';
 import { UsageError } from './error';
 import defaultHelpFormatter, { type HelpFormatter } from './program.formatter';
-import defaultPrompter from './config/prompter';
-import defaultEnv from './config/env';
 import {
   CommandOutput,
   EmptyObject,
@@ -41,14 +39,8 @@ class Program<Commands extends GenericCommands = EmptyObject> {
   }
 
   async run(argv: string[], config?: RuntimeConfig): Promise<Output<Commands>> {
-    const {
-      logger = defaultLogger,
-      prompter = defaultPrompter,
-      env = defaultEnv,
-    } = {
-      ...this.meta,
-      ...config,
-    };
+    const mergedConfig = { ...this.meta, ...config };
+    const { logger = defaultLogger } = mergedConfig;
 
     const name = argv[0];
     const command = this.commands[name];
@@ -75,7 +67,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
             name,
             argv: argv.slice(1),
             command,
-            config: { logger, prompter, env },
+            config: mergedConfig,
           });
         });
     } catch (e) {

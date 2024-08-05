@@ -6,12 +6,14 @@ export interface Env {
   transform(value: string, type: ArgType, key: string): any;
 }
 
-const hasProcessEnv = typeof process !== 'undefined' && process.env;
+export class DefaultEnv implements Env {
+  readonly hasProcessEnv = typeof process !== 'undefined' && process.env;
 
-export default {
-  get: (key: string): string | undefined =>
-    hasProcessEnv ? process.env[key] : undefined,
-  transform: (value: string, type: ArgType): any => {
+  get(key: string): string | undefined {
+    return this.hasProcessEnv ? process.env[key] : undefined;
+  }
+
+  transform(value: string, type: ArgType): any {
     switch (type) {
       case 'number':
         return parseFloat(value);
@@ -24,5 +26,7 @@ export default {
       default:
         return value;
     }
-  },
-};
+  }
+}
+
+export default new DefaultEnv();
