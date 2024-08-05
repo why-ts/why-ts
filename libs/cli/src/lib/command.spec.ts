@@ -132,6 +132,22 @@ describe('Command', () => {
     ).rejects.toThrowError('--foo is required');
   });
 
+  it('should fill arg with env (string)', async () => {
+    const output = await slient
+      .option('foo', o.string({ env: 'NODE_ENV', required: true }))
+      .handle(({ args }) => args.foo)
+      .run([]);
+    expect(output.result === 'test').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should fill arg with env (number)', async () => {
+    const output = await slient
+      .option('foo', o.number({ env: 'TS_JEST', required: true }))
+      .handle(({ args }) => args.foo)
+      .run([]);
+    expect(output.result === 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
   it('should fill arg with fallback', async () => {
     const output = await slient
       .option('foo', o.string({ fallback: () => 'bar', required: true }))

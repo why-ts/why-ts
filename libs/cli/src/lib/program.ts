@@ -1,25 +1,25 @@
 import { P, match } from 'ts-pattern';
-import defaultLogger from './logger';
-import { type Logger } from './logger';
+import defaultLogger from './config/logger';
 import { Command } from './command';
 import { UsageError } from './error';
 import defaultHelpFormatter, { type HelpFormatter } from './program.formatter';
-import defaultPrompter, { Prompter } from './prompter';
+import defaultPrompter from './config/prompter';
+import defaultEnv from './config/env';
 import {
   CommandOutput,
   EmptyObject,
   ProgramMeta as Meta,
-  RunOptions,
+  RuntimeConfig,
 } from './types';
 
-export function program(meta: Meta & RunOptions = {}) {
+export function program(meta: Meta & RuntimeConfig = {}) {
   return new Program({}, meta);
 }
 
 class Program<Commands extends GenericCommands = EmptyObject> {
   constructor(
     public commands: Commands,
-    public readonly meta: Meta & RunOptions
+    public readonly meta: Meta & RuntimeConfig
   ) {}
 
   public outputs: Output<Commands> = {} as any;
@@ -40,10 +40,14 @@ class Program<Commands extends GenericCommands = EmptyObject> {
     );
   }
 
-  async run(argv: string[], options?: RunOptions): Promise<Output<Commands>> {
-    const { logger = defaultLogger, prompter = defaultPrompter } = {
+  async run(argv: string[], config?: RuntimeConfig): Promise<Output<Commands>> {
+    const {
+      logger = defaultLogger,
+      prompter = defaultPrompter,
+      env = defaultEnv,
+    } = {
       ...this.meta,
-      ...options,
+      ...config,
     };
 
     const name = argv[0];
@@ -71,8 +75,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
             name,
             argv: argv.slice(1),
             command,
-            logger,
-            prompter,
+            config: { logger, prompter, env },
           });
         });
     } catch (e) {
@@ -102,23 +105,21 @@ class Program<Commands extends GenericCommands = EmptyObject> {
     name,
     argv,
     command,
-    logger,
-    prompter,
+    config,
   }: {
     name: string;
     argv: string[];
     command: Command<any, any>;
-    logger: Logger;
-    prompter: Prompter;
+    config: RuntimeConfig;
   }): Promise<Output<Commands>> {
     return await match<string[], Promise<Output<Commands>>>(argv)
       .with([P.union('--help', '-h')], async () => {
         // show command help
-        logger.log(command.help());
+        config.logger?.log(command.help());
         return { help: true };
       })
       .otherwise(async () => {
-        const output = await command.run(argv, { logger, prompter });
+        const output = await command.run(argv, config);
         return { command: name, ...output } as Output<Commands>;
       });
   }

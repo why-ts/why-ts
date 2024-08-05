@@ -2,11 +2,12 @@ import minimist from 'minimist';
 import { camelCase } from 'change-case';
 import { P, match } from 'ts-pattern';
 import { CamelCase } from 'type-fest';
-import defaultLogger from './logger';
+import defaultLogger from './config/logger';
 import defaultHelpFormatter, { type HelpFormatter } from './command.formatter';
 import { UsageError } from './error';
 import { TYPE, type Option, type OptionChoicesVariant } from './option.types';
-import defaultPrompter from './prompter';
+import defaultPrompter from './config/prompter';
+import defaultEnv from './config/env';
 import {
   CommandOutput,
   EmptyObject,
@@ -15,8 +16,9 @@ import {
   CommandMeta as Meta,
   MetaArgs,
   ParsedArgsFromOptions,
-  RunOptions,
+  RuntimeConfig,
 } from './types';
+import { FALSY } from './constant';
 
 export function command(metadata: Metadata = {}) {
   return new Command(noop, {}, metadata);
@@ -69,13 +71,17 @@ export class Command<
 
   async run(
     argv: string[],
-    options?: RunOptions
+    config?: RuntimeConfig
   ): Promise<CommandOutput<Options, HandlerResult>> {
     type FullArgs = ParsedArgsFromOptions<Options> & MetaArgs;
 
-    const { logger = defaultLogger, prompter = defaultPrompter } = {
+    const {
+      logger = defaultLogger,
+      prompter = defaultPrompter,
+      env = defaultEnv,
+    } = {
       ...this.metadata,
-      ...options,
+      ...config,
     };
 
     const parsed = minimist(argv, {
@@ -89,13 +95,13 @@ export class Command<
     for (const rawKey in this.options) {
       const camelKey = camelCase(rawKey) as keyof Options;
       const option = this.options[rawKey];
-      const { fallback, required, env } = option;
+      const { fallback, required } = option;
 
       let value = parsed[rawKey];
 
       // try env var if value is undefined
-      if (value === undefined && env) {
-        value = process.env[env];
+      if (value === undefined && option.env) {
+        value = env.get(option.env);
       }
 
       // invoke fallback if value is still undefined
@@ -135,7 +141,6 @@ function noop() {}
 type Validation =
   | { success: true; value: any }
   | { success: false; error: string };
-const FALSY = ['false', '0', 'n'] as const;
 
 function validate(key: string, value: any, option: Option): Validation {
   const fail = (error: string): Validation => ({ success: false, error });
@@ -157,7 +162,7 @@ function validate(key: string, value: any, option: Option): Validation {
 
     .with(['number-array', 'number'], () => ok([value]))
     .with(['number-array', 'array'], () =>
-      match(value.filter((v: unknown) => typeof v !== 'number'))
+      match(value.filter((v: unknown) => typeof v !== 'number' || isNaN(v)))
         .with([], () => ok(value))
         .otherwise((nonNumbers) =>
           fail(`--${key} must be an number but got [${nonNumbers.join(', ')}]`)
@@ -171,7 +176,7 @@ function validate(key: string, value: any, option: Option): Validation {
     .with(['string', 'string'], () => ok(value))
 
     .with(['string-array', 'string'], () => ok([value]))
-    .with(['string-array', 'array'], () => ok(value))
+    .with(['string-array', 'array'], () => ok(value.map(String)))
 
     .with(['string-choices', 'string'], () => {
       const { choices } = option as OptionChoicesVariant;
@@ -194,7 +199,7 @@ function validate(key: string, value: any, option: Option): Validation {
     );
 }
 
-type Metadata = Meta & RunOptions;
+type Metadata = Meta & RuntimeConfig;
 type Handler<O extends GenericOptions, R> = (
   input: HandlerInput<ParsedArgsFromOptions<O>>
 ) => R;

@@ -1,6 +1,7 @@
-import { Logger } from './logger';
+import { Env } from './config/env';
+import { Logger } from './config/logger';
 import { InferOptionType, Option } from './option.types';
-import { Prompter } from './prompter';
+import { Prompter } from './config/prompter';
 
 export type ProgramMeta = {
   readonly description?: string;
@@ -19,9 +20,10 @@ export type HandlerInput<A> = {
   prompter: Prompter;
 };
 
-export type RunOptions = {
+export type RuntimeConfig = {
   readonly logger?: Logger;
   readonly prompter?: Prompter;
+  readonly env?: Env;
 };
 
 export type EmptyObject = NonNullable<unknown>;
