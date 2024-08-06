@@ -17,6 +17,8 @@ import {
   MetaArgs,
   ParsedArgsFromOptions,
   RuntimeConfig,
+  SimpleValidation,
+  Validation,
 } from './types';
 import { FALSY } from './constant';
 
@@ -114,11 +116,22 @@ export class Command<
         errors.push(`--${rawKey} is required`);
       }
 
-      // validate value
+      // built-in validation
       if (value !== undefined) {
         match(validate(rawKey, value, option))
           .with({ success: false }, ({ error }) => errors.push(error))
           .with({ success: true }, ({ value }) => (args[camelKey] = value))
+          .exhaustive();
+      }
+
+      // custom validation
+      if (value !== undefined && option.validate) {
+        match((option.validate as (value: any) => SimpleValidation<any>)(value))
+          .with(true, noop)
+          .with(false, () => errors.push(`--${rawKey} is invalid`))
+          .with(P.string, (e) => errors.push(e))
+          .with({ success: false }, ({ error }) => errors.push(error))
+          .with({ success: true }, (o) => (value = o.value)) // maybe-transformed value
           .exhaustive();
       }
     }
@@ -138,13 +151,9 @@ export class Command<
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 function noop() {}
 
-type Validation =
-  | { success: true; value: any }
-  | { success: false; error: string };
-
-function validate(key: string, value: any, option: Option): Validation {
-  const fail = (error: string): Validation => ({ success: false, error });
-  const ok = (value: any): Validation => ({ success: true, value });
+function validate(key: string, value: any, option: Option): Validation<any> {
+  const fail = (error: string): Validation<any> => ({ success: false, error });
+  const ok = (value: any): Validation<any> => ({ success: true, value });
 
   const expected = option[TYPE];
   const actual = match(typeof value)

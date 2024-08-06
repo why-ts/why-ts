@@ -37,3 +37,9 @@ export type CommandOutput<Options extends GenericOptions, HandlerResult> = {
 export type ParsedArgsFromOptions<O extends GenericOptions> = {
   readonly [K in keyof O]: InferOptionType<O[K]>;
 };
+
+export type Validation<T> =
+  | { success: true; value: T }
+  | { success: false; error: string };
+
+export type SimpleValidation<T> = boolean | string | Validation<T>;

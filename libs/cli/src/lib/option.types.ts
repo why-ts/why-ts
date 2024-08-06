@@ -1,3 +1,5 @@
+import { SimpleValidation } from './types';
+
 export const TYPE = 'type' as const;
 export type ArgType = OptionVariant[typeof TYPE];
 
@@ -44,30 +46,36 @@ export type OptionVariant =
 export type OptionStringVariant = {
   readonly [TYPE]: 'string';
   readonly fallback?: () => string | undefined;
+  readonly validate?: (value: any) => SimpleValidation<string>;
 };
 
 export type OptionStringArrayVariant = {
   readonly [TYPE]: 'string-array';
   readonly fallback?: () => string[] | undefined;
+  readonly validate?: (value: any) => SimpleValidation<string[]>;
 };
 
 export type OptionNumberVariant = {
   readonly [TYPE]: 'number';
   readonly fallback?: () => number | undefined;
+  readonly validate?: (value: any) => SimpleValidation<number>;
 };
 
 export type OptionNumberArrayVariant = {
   readonly [TYPE]: 'number-array';
   readonly fallback?: () => number[] | undefined;
+  readonly validate?: (value: any) => SimpleValidation<number[]>;
 };
 
 export type OptionBooleanVariant = {
   readonly [TYPE]: 'boolean';
   readonly fallback?: () => boolean | undefined;
+  readonly validate?: (value: any) => SimpleValidation<boolean>;
 };
 
 export type OptionChoicesVariant<T extends string = string> = {
   readonly [TYPE]: 'string-choices';
-  readonly fallback?: () => T[number] | undefined;
   readonly choices: readonly T[];
+  readonly fallback?: () => T | undefined;
+  readonly validate?: (value: any) => SimpleValidation<T>;
 };

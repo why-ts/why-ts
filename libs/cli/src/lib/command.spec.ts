@@ -1,5 +1,6 @@
 import { command } from './command';
 import * as o from './option';
+import { Validation } from './types';
 
 const CHOICES = ['bar', 'baz'] as const;
 describe('Command', () => {
@@ -255,5 +256,84 @@ describe('Command', () => {
       .handle(({ current, ...rest }) => current(rest) + rest.args.bar)
       .run(['--foo=2', '--bar=3']);
     expect(output.result === 7).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should handle custom validation (success)', async () => {
+    const output = await slient
+      .option(
+        'foo',
+        o.number({
+          required: true,
+          validate: (v) =>
+            v < 5
+              ? { success: true, value: v }
+              : { success: false, error: 'Foo must be less than 5' },
+        })
+      )
+      .handle(({ args }) => args.foo * args.foo)
+      .run(['--foo=2']);
+    expect(output.result === 4).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should handle custom validation (failure)', async () => {
+    expect(
+      slient
+        .option(
+          'foo',
+          o.number({
+            required: true,
+            validate: (v) =>
+              v < 5
+                ? { success: true, value: v }
+                : { success: false, error: '--foo must be less than 5' },
+          })
+        )
+        .handle(({ args }) => args.foo * args.foo)
+        .run(['--foo=6'])
+    ).rejects.toThrow('--foo must be less than 5');
+  });
+
+  it('should handle custom validation (simple+success)', async () => {
+    const output = await slient
+      .option(
+        'foo',
+        o.number({
+          required: true,
+          validate: (v: number) => v < 5,
+        })
+      )
+      .handle(({ args }) => args.foo * args.foo)
+      .run(['--foo=2']);
+    expect(output.result === 4).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should handle custom validation (simple+failure)', async () => {
+    expect(
+      slient
+        .option(
+          'foo',
+          o.number({
+            required: true,
+            validate: (v) => v < 5,
+          })
+        )
+        .handle(({ args }) => args.foo * args.foo)
+        .run(['--foo=6'])
+    ).rejects.toThrow('--foo is invalid');
+  });
+
+  it('should handle custom validation (simple+error)', async () => {
+    expect(
+      slient
+        .option(
+          'foo',
+          o.number({
+            required: true,
+            validate: (v) => v < 5 || '--foo must be less than 5',
+          })
+        )
+        .handle(({ args }) => args.foo * args.foo)
+        .run(['--foo=6'])
+    ).rejects.toThrow('--foo must be less than 5');
   });
 });
