@@ -1,6 +1,5 @@
 import { command } from './command';
 import * as o from './option';
-import { Validation } from './types';
 
 const CHOICES = ['bar', 'baz'] as const;
 describe('Command', () => {

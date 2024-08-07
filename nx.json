@@ -34,7 +34,25 @@
         "targetName": "test"
       },
       "exclude": ["apps/why-ts-e2e/**/*", "example-cli-e2e/**/*"]
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static"
+      }
     }
   ],
-  "nxCloudAccessToken": "Y2FhODM1NTQtYWNkYS00ODkxLWIzNDQtNjk0MjQzYmI0MGIzfHJlYWQtd3JpdGU="
+  "nxCloudAccessToken": "Y2FhODM1NTQtYWNkYS00ODkxLWIzNDQtNjk0MjQzYmI0MGIzfHJlYWQtd3JpdGU=",
+  "generators": {
+    "@nx/web:application": {
+      "style": "css",
+      "linter": "eslint",
+      "unitTestRunner": "jest",
+      "e2eTestRunner": "none"
+    }
+  }
 }

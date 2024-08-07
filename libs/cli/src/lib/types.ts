@@ -1,4 +1,5 @@
 import { Env } from './config/env';
+import { Parser } from './config/parser';
 import { Logger } from './config/logger';
 import { InferOptionType, Option } from './option.types';
 import { Prompter } from './config/prompter';
@@ -21,6 +22,7 @@ export type HandlerInput<A> = {
 };
 
 export type RuntimeConfig = {
+  readonly parser?: Parser;
   readonly logger?: Logger;
   readonly prompter?: Prompter;
   readonly env?: Env;
