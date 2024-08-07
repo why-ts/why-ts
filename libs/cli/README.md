@@ -53,6 +53,25 @@ Boolean false values can also be specified with the `--no-<name>` option (TODO: 
 # {baz: false}
 ```
 
+### Aliases
+
+Option aliases can be specified with an object in the `.option()` function.
+
+```ts
+command()
+  .option({ name: 'foo', aliases: ['f'] }, o.string())
+  .handle(({ args }) => console.log(args)); // type of `args`: {foo?:string}
+```
+
+#### Examples
+
+Basic usage
+
+```bash
+> ts-node index.ts -f=orange
+# {foo: 'orange'}
+```
+
 ### Mandatory Options
 
 Options can be marked as `required`. If user did not specify the option via command line, an error will be thrown.

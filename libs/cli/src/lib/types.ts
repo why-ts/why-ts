@@ -30,14 +30,16 @@ export type RuntimeConfig = {
 
 export type EmptyObject = NonNullable<unknown>;
 export type GenericParsedArgs = Record<string, any>;
-export type GenericOptions = { readonly [K in string]: Option };
+export type GenericOptions = {
+  readonly [K in string]: { aliases: string[]; spec: Option };
+};
 export type CommandOutput<Options extends GenericOptions, HandlerResult> = {
   readonly args: ParsedArgsFromOptions<Options>;
   readonly result: Awaited<HandlerResult>;
 };
 
 export type ParsedArgsFromOptions<O extends GenericOptions> = {
-  readonly [K in keyof O]: InferOptionType<O[K]>;
+  readonly [K in keyof O]: InferOptionType<O[K]['spec']>;
 };
 
 export type Validation<T> =

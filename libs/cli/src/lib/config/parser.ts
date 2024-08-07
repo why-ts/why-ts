@@ -34,15 +34,24 @@ export class MinimistParser implements Parser {
   ): Promise<FullArgs<Options>> {
     const parsed = minimist(argv, {
       string: Object.entries(options)
-        .filter(([, v]) => v[TYPE].startsWith('string')) // force minimist to parse input as string
+        .filter(([, v]) => v.spec[TYPE].startsWith('string')) // force minimist to parse input as string
         .map(([k]) => k),
+      alias: Object.fromEntries(
+        Object.entries(options).reduce(
+          (acc, [k, { aliases }]) => [
+            ...acc,
+            ...aliases.map<[string, string]>((a) => [a, k]),
+          ],
+          [] as [string, string][]
+        )
+      ),
     });
 
     const args = { _: parsed._ } as FullArgs<Options>;
     const errors: string[] = [];
     for (const rawKey in options) {
       const camelKey = camelCase(rawKey) as keyof Options;
-      const option = options[rawKey];
+      const option = options[rawKey].spec;
       const { fallback, required } = option;
 
       let value = parsed[rawKey];

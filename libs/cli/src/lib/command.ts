@@ -43,13 +43,19 @@ export class Command<
   }
 
   option<N extends string, O extends Option>(
-    name: N,
-    o: O
-  ): Command<Options & { [K in CamelCase<N>]: O }, HandlerResult> {
+    name: N | { name: N; aliases: string[] },
+    spec: O
+  ): Command<
+    Options & { [K in CamelCase<N>]: { aliases: string[]; spec: O } },
+    HandlerResult
+  > {
+    const n = typeof name === 'string' ? name : name.name;
+    const aliases = typeof name === 'string' ? [] : name.aliases;
+
     return new Command(
       this.handler,
-      { ...this.options, [name]: o } as Options & {
-        [K in CamelCase<N>]: O;
+      { ...this.options, [n]: { spec, aliases } } as Options & {
+        [K in CamelCase<N>]: { aliases: string[]; spec: O };
       },
       this.metadata
     );

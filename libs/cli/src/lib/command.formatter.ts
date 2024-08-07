@@ -4,14 +4,13 @@ import { CommandMeta as Meta } from './types';
 import { getBorderCharacters, table } from 'table';
 import { getTtyWidth, maxLength } from './util';
 
-export type HelpFormatter = (
-  meta: Meta,
-  options: Record<string, Option>
-) => string;
+type Options = Record<string, { aliases: string[]; spec: Option }>;
+
+export type HelpFormatter = (meta: Meta, options: Options) => string;
 
 const defaultHelpFormatter: HelpFormatter = (
   meta: Meta,
-  options: Record<string, Option>
+  options: Options
 ): string => {
   const width = getTtyWidth();
 
@@ -24,11 +23,11 @@ const defaultHelpFormatter: HelpFormatter = (
       )
       .otherwise((type) => `[${type}]`);
   }
-  function printOptions(options: [string, Option][]) {
-    const data = options.map(([key, option]) => [
+  function printOptions(options: [string, { spec: Option }][]) {
+    const data = options.map(([key, { spec }]) => [
       `--${key}`,
-      printOptionType(option),
-      option.description ?? '',
+      printOptionType(spec),
+      spec.description ?? '',
     ]);
 
     return table(data, {
@@ -61,7 +60,7 @@ const defaultHelpFormatter: HelpFormatter = (
   function addOptionsSection(required: boolean) {
     match(
       Object.entries(options).filter(
-        ([, o]) => Boolean(o.required) === required
+        ([, { spec }]) => Boolean(spec.required) === required
       )
     )
       .when(
