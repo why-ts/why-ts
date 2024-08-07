@@ -60,6 +60,7 @@ export class MinimistParser implements Parser {
       // throw if required value is still undefined after fallback
       if (value === undefined && required) {
         errors.push(`--${rawKey} is required`);
+        continue;
       }
 
       // built-in validation
@@ -137,9 +138,8 @@ export class MinimistParser implements Parser {
         return choices.includes(value)
           ? ok(value)
           : fail(
-              `--${key} must be one of [${choices.join(
-                ', '
-              )}], but got ${value}`
+              `--${key} must be one of [${choices.join(', ')}], ` +
+                `but got ${value}`
             );
       })
       .with(
