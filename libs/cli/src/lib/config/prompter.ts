@@ -1,12 +1,17 @@
-import readline from 'node:readline/promises';
+import prompts from 'prompts';
 
 export interface Prompter {
   boolean(args: { message: string; default?: boolean }): Promise<boolean>;
-  // string(args: { message: string }): Promise<string>;
-  // choices<T extends string>(args: { message: string, choices:T[] }): Promise<T>;
+  string(args: { message: string }): Promise<string>;
+  strings(args: { message: string }): Promise<string[]>;
+  number(args: { message: string }): Promise<number>;
+  numbers(args: { message: string }): Promise<number[]>;
+  choices<T extends string>(args: {
+    message: string;
+    choices: T[];
+  }): Promise<T>;
 }
 
-const TRUTHY = ['y', 'yes'] as readonly string[];
 export class DefaultPrompter implements Prompter {
   async boolean({
     message,
@@ -15,14 +20,66 @@ export class DefaultPrompter implements Prompter {
     message: string;
     default?: boolean;
   }) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
+    const res = await prompts({
+      type: 'confirm',
+      name: 'value',
+      message,
+      initial: def,
     });
+    return res.value;
+  }
 
-    const answer = await rl.question(`${message} [${def ? 'Y/n' : 'y/N'}] `);
-    rl.close();
-    return answer === '' ? def : TRUTHY.includes(answer.toLowerCase());
+  async string({ message }: { message: string }): Promise<string> {
+    const res = await prompts({
+      type: 'text',
+      name: 'value',
+      message,
+    });
+    return res.value;
+  }
+
+  async strings({ message }: { message: string }): Promise<string[]> {
+    const res = await prompts({
+      type: 'list',
+      name: 'value',
+      message,
+    });
+    return res.value;
+  }
+
+  async number({ message }: { message: string }): Promise<number> {
+    const res = await prompts({
+      type: 'number',
+      name: 'value',
+      message,
+    });
+    return res.value;
+  }
+
+  async numbers({ message }: { message: string }): Promise<number[]> {
+    const res = await prompts({
+      type: 'list',
+      name: 'value',
+      message,
+      format: (strings: string[]) => strings.map(parseFloat),
+    });
+    return res.value;
+  }
+
+  async choices<T extends string>({
+    message,
+    choices,
+  }: {
+    message: string;
+    choices: T[];
+  }): Promise<T> {
+    const res = await prompts({
+      type: 'select',
+      name: 'value',
+      message,
+      choices: choices.map((c) => ({ title: c, value: c })),
+    });
+    return res.value;
   }
 }
 

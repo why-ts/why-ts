@@ -37,22 +37,8 @@
         }
       }
     },
-    "serve": {
-      "executor": "@nx/js:node",
-      "defaultConfiguration": "development",
-      "dependsOn": ["build"],
-      "options": {
-        "buildTarget": "example-cli:build",
-        "runBuildTargetDependencies": false
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "example-cli:build:development"
-        },
-        "production": {
-          "buildTarget": "example-cli:build:production"
-        }
-      }
+    "eval": {
+      "command": "TS_NODE_PROJECT=apps/example-cli/tsconfig.app.json node -r @swc-node/register apps/example-cli/src/main.ts"
     }
   }
 }

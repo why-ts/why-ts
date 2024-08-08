@@ -1,10 +1,12 @@
 import { program, command, option as o, UsageError } from '@why-ts/cli';
 import { match } from 'ts-pattern';
+import prompTestCommand from './prompt-test/command';
 
 (async () => {
   const output = await program({
     description: 'Example CLI',
   })
+    .command('prompt-test', prompTestCommand)
     .command(
       'generate',
       command({

@@ -313,7 +313,7 @@ Controls how the help text is formatted.
 
 ## TODO
 
-- Interactive prompter
+- More data types (e.g. Date)
 - `--` handling
 - Shell completion
 - Locale
