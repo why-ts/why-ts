@@ -1,6 +1,6 @@
 import { P, match } from 'ts-pattern';
 import { Command } from './command';
-import defaultLogger from './config/logger';
+import defaultLogger from './config/logger.default';
 import { UsageError } from './error';
 import defaultHelpFormatter, { type HelpFormatter } from './program.formatter';
 import {

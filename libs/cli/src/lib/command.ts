@@ -1,9 +1,9 @@
 import { CamelCase } from 'type-fest';
 import defaultHelpFormatter, { type HelpFormatter } from './command.formatter';
-import defaultEnv from './config/env';
-import defaultLogger from './config/logger';
-import defaultParser from './config/parser';
-import defaultPrompter from './config/prompter';
+import defaultEnv from './config/env.default';
+import defaultLogger from './config/logger.default';
+import defaultParser from './config/parser.default';
+import defaultPrompter from './config/prompter.default';
 import { type Option } from './option.types';
 import {
   CommandOutput,
