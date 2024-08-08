@@ -5,6 +5,7 @@ Building robust and maintainable command-line interfaces (CLIs) in TypeScript.
 ## Commands
 
 Commands are constructed with the `command()` call and added to a Program with a string name.
+Command handler is registered by providing a callback to the `.handle()` function.
 
 ```ts
 import { program, command, option as o } from '@why-ts/cli';
@@ -16,10 +17,93 @@ const output = await program()
   .run(process.argv.slice(2));
 ```
 
+Command objects are immutable. Any function that returns a `Command` instance is always a new instance.
+
+```ts
+const command1 = command();
+const command2 = command1.option('foo', o.string());
+const command3 = command2.handle(console.log);
+console.log(command1 === command2); // false
+console.log(command2 === command3); // false
+```
+
+### Command Handler
+
+A command hander is a function that gets invoked when user specifies to run the command
+(first entry in the string array passed to `.run()` is the command name).  
+The handler function will receive the following arguments:
+
+- `args`: Parsed type-safe args
+- `argv`: Raw args passed to `program.run()`
+- `logger`: `Logger` instance (see more in the Configuration section below)
+- `prompter`: `Prompter` instance (see more in the Configuration section below)
+
+Since Commands are immutable, it is possible redefine/override a handler and invoke the "parent" one.  
+This is usually useful for implementing options and logic that are shared by multiple commands.
+
+#### Examples
+
+Basic:
+
+```ts
+const command = command().handle({args, argv}) => {
+  console.log(args); // typed args
+  console.log(argv); // raw argv string array
+}
+```
+
+Share options and logic between multiple commands:
+
+```ts
+const common = command()
+  .option('working-directory', o.string())
+  .handle({args} => {
+    if(args.workingDirectory)
+      process.chdir(args.workingDirectory);
+});
+
+const foo = common
+  .options('foo', o.string())
+  .handle(({args}, _super) => {
+    await _super(); // change directory logic is implemented in base command
+    console.log(args.foo);
+  });
+```
+
+Note that in the following example, the first handler is shadowed
+because it is not explicitly called via the `_super` pattern in the second handler
+
+```ts
+command()
+  .handle(() => console.log('foo'))
+  .handle(() => console.log('bar'));
+```
+
+### Command Metadata
+
+Metadata for a command (e.g. description) can be specified in the `command()` constructor call, or overridden via the `.meta()` call
+
+#### Examples
+
+```ts
+const c1 = command({ description: 'Foo' });
+const c2 = c1.meta({ description: 'Bar' });
+const c3 = c1.meta((base) => ({ ...base, description: `${base.description} & Bar` }));
+```
+
 ## Options (Flags)
 
-options are are constructed with the `option.<type>()` call and added to a Command with a string name.
-The options can be accessed in the handler via the `args` field
+Options are are constructed with the `option.<type>()` call and added to a Command with a string name.
+The options can be accessed in the handler via the `args` field.
+
+The following types are currently supported:
+
+- `o.string()`: single string option, e.g. `--foo=orange` => `{foo: 'orange'}`
+- `o.strings()`: multiple string options, e.g. `--foo=orange --foo=apple`=> `{foo: ['orange', 'apple']}`
+- `o.number()`: single number option, e.g. `--foo=42` => `{foo: 42}`
+- `o.numbers()`: multiple number options, e.g. `--foo=42 --foo=100`=> `{foo: [42, 100]}`
+- `o.boolean()`: boolean option, e.g. `--foo` => `{foo: true}` (The default `Parser` will also interpret `--no-<name>`, i.e. `--no-foo` => `{foo: false}`)
+- `o.choices(['orange', 'apple'])`: only allow the specified string values, e.g. `--foo=lemon` will throw an error
 
 ```ts
 import { command, option as o } from '@why-ts/cli';
@@ -74,7 +158,8 @@ Basic usage
 
 ### Mandatory Options
 
-Options can be marked as `required`. If user did not specify the option via command line, an error will be thrown.
+Options can be marked as `required`.  
+If user did not specify the option via command line, an error will be thrown.
 
 ```ts
 import { command, option as o } from '@why-ts/cli';
@@ -84,6 +169,8 @@ command()
   .option('baz', o.boolean({ required: true }))
   .handle(({ args }) => console.log(args)); // type of `args`: {foo:string, bar:string, baz:boolean}
 ```
+
+(TODO: auto prompt for missing options if `{required: 'prompt'}`)
 
 #### Examples
 
@@ -121,10 +208,6 @@ Example:
 > ts-node index.ts --foo=orange --foo=apple --bar=7 --bar=42
 # {foo: ['orange', 'apple'], bar: [7, 42]}
 ```
-
-### Alias
-
-TODO
 
 ### Environment Variables
 
@@ -227,3 +310,14 @@ The default implementation is based on Node.js `readline` module.
 ### Help Formatter
 
 Controls how the help text is formatted.
+
+## TODO
+
+- Interactive prompter
+- `--` handling
+- Shell completion
+- Locale
+- Option relationships (is it possible to represent them at type level?)
+  - dependencies (y is required if x is defined)
+  - validation (takes y into account when validating x)
+  - exclusivity (x and y cannot be specified together)

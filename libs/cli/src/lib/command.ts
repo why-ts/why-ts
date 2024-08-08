@@ -66,7 +66,7 @@ export class Command<
   ): Command<Options, R> {
     return new Command(
       (input: HandlerInput<ParsedArgsFromOptions<Options>>) =>
-        handler({ ...input, current: this.handler }),
+        handler(input, this.handler),
       this.options,
       this.metadata
     );
@@ -101,7 +101,6 @@ type Handler<O extends GenericOptions, R> = (
   input: HandlerInput<ParsedArgsFromOptions<O>>
 ) => R;
 type HandlerReplacement<O extends GenericOptions, R1, R2> = (
-  input: HandlerInput<ParsedArgsFromOptions<O>> & {
-    current: Handler<O, R1>;
-  }
+  input: HandlerInput<ParsedArgsFromOptions<O>>,
+  current: Handler<O, R1>
 ) => R2;

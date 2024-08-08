@@ -322,7 +322,7 @@ describe('Command', () => {
       .option('foo', o.number({ required: true }))
       .handle(({ args }) => args.foo * args.foo)
       .option('bar', o.number({ required: true }))
-      .handle(({ current, ...rest }) => current(rest) + rest.args.bar)
+      .handle((v, _super) => _super(v) + v.args.bar)
       .run(['--foo=2', '--bar=3']);
     expect(output.result === 7).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
   });

@@ -30,8 +30,7 @@ export type InferOptionType<O extends Option> = InferRequiredArgType<
 >;
 
 export type OptionBase = {
-  // readonly aliases?: readonly string[]; // TODO: Implement aliases
-  readonly required?: boolean;
+  readonly required?: boolean; // TODO: `| 'prompt'` for interactive prompts
   readonly description?: string;
   readonly env?: string;
 };
