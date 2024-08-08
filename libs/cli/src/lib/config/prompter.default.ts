@@ -55,7 +55,7 @@ export class DefaultPrompter implements Prompter {
     return res.value;
   }
 
-  async choices<T extends string>({
+  async choice<T extends string>({
     message,
     choices,
   }: {

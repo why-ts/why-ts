@@ -64,26 +64,26 @@ describe('Command', () => {
     expect(output.result?.[1] === '42').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
   });
 
-  it('should parse choices', async () => {
+  it('should parse choice', async () => {
     const output = await slient
-      .option('foo', o.choices(CHOICES))
+      .option('foo', o.choice(CHOICES))
       .handle(({ args }) => args.foo)
       .run(['--foo', 'bar']);
     expect(output.result === 'bar').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
   });
 
-  it('should parse choices (alias)', async () => {
+  it('should parse choice (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.choices(CHOICES))
+      .option({ name: 'foo', aliases: ['f'] }, o.choice(CHOICES))
       .handle(({ args }) => args.foo)
       .run(['-f', 'bar']);
     expect(output.result === 'bar').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
   });
 
-  it('should throw if output not accepted by the choices', async () => {
+  it('should throw if output not accepted by the choice', async () => {
     await expect(
       slient
-        .option('foo', o.choices(CHOICES))
+        .option('foo', o.choice(CHOICES))
         .handle(({ args }) => args.foo)
         .run(['--foo', 'barbaz'])
     ).rejects.toThrow('--foo must be one of [bar, baz], but got barbaz');
@@ -228,7 +228,7 @@ describe('Command', () => {
     const output = await slient
       .option(
         'foo',
-        o.choices(CHOICES, {
+        o.choice(CHOICES, {
           required: true,
           fallback: () => 'bar' as const,
         })

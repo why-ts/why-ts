@@ -14,7 +14,7 @@ import prompTestCommand from './prompt-test/command';
       })
         .option(
           'type',
-          o.choices(['int', 'float', 'string', 'list', 'dict'], {
+          o.choice(['int', 'float', 'string', 'list', 'dict'], {
             required: true,
             description: 'Specifies the type of data to generate.',
           })

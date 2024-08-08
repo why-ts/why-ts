@@ -113,8 +113,8 @@ export class MinimistParser implements Parser {
           : ok(num);
       })
 
-      .with(['number-array', 'number'], () => ok([value]))
-      .with(['number-array', 'array'], () =>
+      .with(['numbers', 'number'], () => ok([value]))
+      .with(['numbers', 'array'], () =>
         match(value.filter((v: unknown) => typeof v !== 'number' || isNaN(v)))
           .with([], () => ok(value))
           .otherwise((nonNumbers) =>
@@ -132,10 +132,10 @@ export class MinimistParser implements Parser {
 
       .with(['string', 'string'], () => ok(value))
 
-      .with(['string-array', 'string'], () => ok([value]))
-      .with(['string-array', 'array'], () => ok(value.map(String)))
+      .with(['strings', 'string'], () => ok([value]))
+      .with(['strings', 'array'], () => ok(value.map(String)))
 
-      .with(['string-choices', 'string'], () => {
+      .with(['choice', 'string'], () => {
         const { choices } = option as OptionChoicesVariant;
         return choices.includes(value)
           ? ok(value)
@@ -144,13 +144,11 @@ export class MinimistParser implements Parser {
                 `but got ${value}`
             );
       })
-      .with(
-        [P.union('number', 'boolean', 'string', 'string-choices'), 'array'],
-        () =>
-          fail(
-            `--${key} only accepts a single value but is specified multiple times with values: ` +
-              `[${value.join(', ')}]`
-          )
+      .with([P.union('number', 'boolean', 'string', 'choice'), 'array'], () =>
+        fail(
+          `--${key} only accepts a single value but is specified multiple times with values: ` +
+            `[${value.join(', ')}]`
+        )
       )
       .otherwise(([expected, actual]) =>
         fail(`--${key} must be a ${expected} but got ${value} (${actual})`)

@@ -14,11 +14,11 @@ export type InferArgType<O extends Option> = O extends { [TYPE]: 'number' }
   ? number
   : O extends { [TYPE]: 'boolean' }
   ? boolean
-  : O extends { [TYPE]: 'string-array' }
+  : O extends { [TYPE]: 'strings' }
   ? string[]
-  : O extends { [TYPE]: 'number-array' }
+  : O extends { [TYPE]: 'numbers' }
   ? number[]
-  : O extends { [TYPE]: 'string-choices'; choices: infer C }
+  : O extends { [TYPE]: 'choice'; choices: infer C }
   ? C extends readonly string[]
     ? C[number]
     : never
@@ -49,7 +49,7 @@ export type OptionStringVariant = {
 };
 
 export type OptionStringArrayVariant = {
-  readonly [TYPE]: 'string-array';
+  readonly [TYPE]: 'strings';
   readonly fallback?: () => string[] | undefined;
   readonly validate?: (value: any) => SimpleValidation<string[]>;
 };
@@ -61,7 +61,7 @@ export type OptionNumberVariant = {
 };
 
 export type OptionNumberArrayVariant = {
-  readonly [TYPE]: 'number-array';
+  readonly [TYPE]: 'numbers';
   readonly fallback?: () => number[] | undefined;
   readonly validate?: (value: any) => SimpleValidation<number[]>;
 };
@@ -73,7 +73,7 @@ export type OptionBooleanVariant = {
 };
 
 export type OptionChoicesVariant<T extends string = string> = {
-  readonly [TYPE]: 'string-choices';
+  readonly [TYPE]: 'choice';
   readonly choices: readonly T[];
   readonly fallback?: () => T | undefined;
   readonly validate?: (value: any) => SimpleValidation<T>;

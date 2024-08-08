@@ -17,7 +17,7 @@ const defaultHelpFormatter: HelpFormatter = (
   function printOptionType(option: Option) {
     return match(option[TYPE])
       .with(
-        'string-choices',
+        'choice',
         () =>
           `[choices: ${(option as OptionChoicesVariant).choices.join(', ')}]`
       )

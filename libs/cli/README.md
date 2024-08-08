@@ -103,7 +103,7 @@ The following types are currently supported:
 - `o.number()`: single number option, e.g. `--foo=42` => `{foo: 42}`
 - `o.numbers()`: multiple number options, e.g. `--foo=42 --foo=100`=> `{foo: [42, 100]}`
 - `o.boolean()`: boolean option, e.g. `--foo` => `{foo: true}` (The default `Parser` will also interpret `--no-<name>`, i.e. `--no-foo` => `{foo: false}`)
-- `o.choices(['orange', 'apple'])`: only allow the specified string values, e.g. `--foo=lemon` will throw an error
+- `o.choice(['orange', 'apple'])`: only allow the specified string values, e.g. `--foo=lemon` will throw an error
 
 ```ts
 import { command, option as o } from '@why-ts/cli';
@@ -186,7 +186,7 @@ Only allow a specified list of strings. When user provides values other than the
 ```ts
 import { command, option as o } from '@why-ts/cli';
 command()
-  .option('foo', o.choices(['apple', 'orange']))
+  .option('foo', o.choice(['apple', 'orange']))
   .handle(({ args }) => console.log(args)); // type of `args`: {foo:'apple'|'orange'}
 ```
 

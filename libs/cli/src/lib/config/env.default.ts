@@ -13,11 +13,11 @@ export class DefaultEnv implements Env {
     switch (type) {
       case 'number':
         return parseFloat(value);
-      case 'number-array':
+      case 'numbers':
         return value.split(',').map(parseFloat);
       case 'boolean':
         return !FALSY.includes(value.toLowerCase() as any);
-      case 'string-array':
+      case 'strings':
         return value.split(',');
       default:
         return value;

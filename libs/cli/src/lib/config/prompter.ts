@@ -4,8 +4,5 @@ export interface Prompter {
   strings(args: { message: string }): Promise<string[]>;
   number(args: { message: string }): Promise<number>;
   numbers(args: { message: string }): Promise<number[]>;
-  choices<T extends string>(args: {
-    message: string;
-    choices: T[];
-  }): Promise<T>;
+  choice<T extends string>(args: { message: string; choices: T[] }): Promise<T>;
 }

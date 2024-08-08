@@ -6,7 +6,7 @@ export const TYPES = [
   'number',
   'numbers',
   'boolean',
-  'choices',
+  'choice',
 ] as const;
 
 export default async function ({
@@ -23,9 +23,9 @@ export default async function ({
     print(await prompter.numbers({ message: 'Enter a list of numbers' }));
   if (!type || type === 'boolean')
     print(await prompter.boolean({ message: 'Confirm?' }));
-  if (!type || type === 'choices')
+  if (!type || type === 'choice')
     print(
-      await prompter.choices({
+      await prompter.choice({
         message: 'Select a fruit',
         choices: ['orange', 'apple', 'banana'],
       })
