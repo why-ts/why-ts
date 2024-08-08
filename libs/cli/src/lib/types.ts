@@ -30,8 +30,9 @@ export type RuntimeConfig = {
 
 export type EmptyObject = NonNullable<unknown>;
 export type GenericParsedArgs = Record<string, any>;
+export type AliasedOption = { aliases: string[]; spec: Option };
 export type GenericOptions = {
-  readonly [K in string]: { aliases: string[]; spec: Option };
+  readonly [K in string]: AliasedOption;
 };
 export type CommandOutput<Options extends GenericOptions, HandlerResult> = {
   readonly args: ParsedArgsFromOptions<Options>;

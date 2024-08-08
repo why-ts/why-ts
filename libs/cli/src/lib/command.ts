@@ -1,5 +1,6 @@
 import { CamelCase } from 'type-fest';
-import defaultHelpFormatter, { type HelpFormatter } from './command.formatter';
+import { type CommandHelpFormatter } from './config/command-help-formatter';
+import defaultHelpFormatter from './config/command-help-formatter.default';
 import defaultEnv from './config/env.default';
 import defaultLogger from './config/logger.default';
 import defaultParser from './config/parser.default';
@@ -7,11 +8,10 @@ import defaultPrompter from './config/prompter.default';
 import { type Option } from './option.types';
 import {
   CommandOutput,
-  CommandMeta as Meta,
   EmptyObject,
   GenericOptions,
   HandlerInput,
-  MetaArgs,
+  CommandMeta as Meta,
   ParsedArgsFromOptions,
   RuntimeConfig,
 } from './types';
@@ -91,8 +91,8 @@ export class Command<
     return { args, result };
   }
 
-  help(formatter: HelpFormatter = defaultHelpFormatter): string {
-    return formatter(this.metadata, this.options);
+  help(formatter: CommandHelpFormatter = defaultHelpFormatter): string {
+    return formatter.format(this.metadata, this.options);
   }
 }
 

@@ -1,8 +1,9 @@
 import { P, match } from 'ts-pattern';
 import { Command } from './command';
 import defaultLogger from './config/logger.default';
+import { type ProgramHelpFormatter } from './config/program-help-formatter';
+import defaultHelpFormatter from './config/program-help-formatter.default';
 import { UsageError } from './error';
-import defaultHelpFormatter, { type HelpFormatter } from './program.formatter';
 import {
   CommandOutput,
   EmptyObject,
@@ -89,8 +90,8 @@ class Program<Commands extends GenericCommands = EmptyObject> {
     }
   }
 
-  help(formatter: HelpFormatter = defaultHelpFormatter) {
-    return formatter(this.meta, this.commands);
+  help(formatter: ProgramHelpFormatter = defaultHelpFormatter) {
+    return formatter.format(this.meta, this.commands);
   }
 
   private async runCommand({
