@@ -1,5 +1,5 @@
 import { FALSY } from '../constant';
-import { ArgType } from '../option.types';
+import { OptionValueType } from '../option.types';
 import { Env } from './env';
 
 export class DefaultEnv implements Env {
@@ -9,7 +9,7 @@ export class DefaultEnv implements Env {
     return this.hasProcessEnv ? process.env[key] : undefined;
   }
 
-  transform(value: string, type: ArgType): any {
+  transform(value: string, type: OptionValueType): any {
     switch (type) {
       case 'number':
         return parseFloat(value);

@@ -1,18 +1,9 @@
-import { HandlerInput } from '@why-ts/cli';
-
-export const TYPES = [
-  'string',
-  'strings',
-  'number',
-  'numbers',
-  'boolean',
-  'choice',
-] as const;
+import { HandlerInput, OptionValueType } from '@why-ts/cli';
 
 export default async function ({
   args: { type },
   prompter,
-}: HandlerInput<{ type?: (typeof TYPES)[number] }>) {
+}: HandlerInput<{ type?: OptionValueType }>) {
   if (!type || type === 'string')
     print(await prompter.string({ message: 'Enter a string' }));
   if (!type || type === 'strings')

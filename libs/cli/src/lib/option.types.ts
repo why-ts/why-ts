@@ -1,16 +1,28 @@
 import { SimpleValidation } from './types';
 
 export const TYPE = 'type' as const;
-export type ArgType = OptionVariant[typeof TYPE];
+export const OPTION_VALUE_TYPES = [
+  'string',
+  'strings',
+  'number',
+  'numbers',
+  'boolean',
+  'choice',
+] as const;
+export type OptionValueType = (typeof OPTION_VALUE_TYPES)[number];
 
 export type Option = OptionBase & OptionVariant;
 
-export type InferRequiredArgType<
+export type InferRequiredOptionValueType<
   O extends Option,
   R extends boolean | undefined
-> = R extends true ? InferArgType<O> : InferArgType<O> | undefined;
+> = R extends true
+  ? InferOptionValueType<O>
+  : InferOptionValueType<O> | undefined;
 
-export type InferArgType<O extends Option> = O extends { [TYPE]: 'number' }
+export type InferOptionValueType<O extends Option> = O extends {
+  [TYPE]: 'number';
+}
   ? number
   : O extends { [TYPE]: 'boolean' }
   ? boolean
@@ -24,12 +36,13 @@ export type InferArgType<O extends Option> = O extends { [TYPE]: 'number' }
     : never
   : string;
 
-export type InferOptionType<O extends Option> = InferRequiredArgType<
+export type InferOptionType<O extends Option> = InferRequiredOptionValueType<
   O,
   O['required']
 >;
 
 export type OptionBase = {
+  // readonly [TYPE]: OptionValueType;
   readonly required?: boolean; // TODO: `| 'prompt'` for interactive prompts
   readonly description?: string;
   readonly env?: string;
