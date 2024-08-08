@@ -1,4 +1,3 @@
-import { type Option } from '../option.types';
 import { AliasedOption, CommandMeta } from '../types';
 
 type Options = Record<string, AliasedOption>;
