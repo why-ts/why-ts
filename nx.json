@@ -46,7 +46,6 @@
       }
     }
   ],
-  "nxCloudAccessToken": "Y2FhODM1NTQtYWNkYS00ODkxLWIzNDQtNjk0MjQzYmI0MGIzfHJlYWQtd3JpdGU=",
   "generators": {
     "@nx/web:application": {
       "style": "css",

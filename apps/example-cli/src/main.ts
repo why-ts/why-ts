@@ -8,6 +8,14 @@ import prompTestCommand from './prompt-test/command';
   })
     .command('prompt-test', prompTestCommand)
     .command(
+      'error',
+      command()
+        .option('message', o.string())
+        .handle(({ args }) => {
+          throw new Error(args.message ?? 'An error occurred\n at main.ts:1:1');
+        })
+    )
+    .command(
       'generate',
       command({
         description: 'Generates random data based on specified parameters.',
@@ -102,13 +110,12 @@ import prompTestCommand from './prompt-test/command';
     )
 
     .run(process.argv.slice(2))
-    .catch((e) =>
-      process.exit((e as UsageError).type === 'COMMAND_MISSING' ? 0 : 1)
-    );
+    .catch(() => process.exit(1));
 
   match(output)
-    .with({ kind: 'help' }, () => {
-      /* noop as help is shown */
-    })
+    .with({ kind: 'help' }, noop)
     .otherwise((output) => process.exit(output.result));
 })();
+
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+function noop() {}

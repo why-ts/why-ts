@@ -1,24 +1,26 @@
 import { P, match } from 'ts-pattern';
 import { Command } from './command';
+import defaultArgvFormatter from './config/argv-formatter.default';
+import defaultErrorFormatter from './config/error-formatter.default';
 import defaultLogger from './config/logger.default';
 import { type ProgramHelpFormatter } from './config/program-help-formatter';
 import defaultHelpFormatter from './config/program-help-formatter.default';
-import { UsageError } from './error';
+import { CommandNotFoundError, UsageError } from './error';
 import {
   CommandOutput,
   EmptyObject,
-  ProgramMeta as Meta,
+  ProgramMeta,
   RuntimeConfig,
 } from './types';
 
-export function program(meta: Meta & RuntimeConfig = {}) {
-  return new Program({}, meta);
+export function program(metadata: ProgramMeta & RuntimeConfig = {}) {
+  return new Program({}, metadata);
 }
 
 class Program<Commands extends GenericCommands = EmptyObject> {
   constructor(
     public commands: Commands,
-    public readonly meta: Meta & RuntimeConfig
+    public readonly metadata: ProgramMeta & RuntimeConfig
   ) {}
 
   public outputs: Output<Commands> = {} as any;
@@ -35,13 +37,18 @@ class Program<Commands extends GenericCommands = EmptyObject> {
       { ...this.commands, [name]: command } as Commands & {
         [N in Name]: Cmd;
       },
-      this.meta
+      this.metadata
     );
   }
 
   async run(argv: string[], config?: RuntimeConfig): Promise<Output<Commands>> {
-    const mergedConfig = { ...this.meta, ...config };
-    const { logger = defaultLogger } = mergedConfig;
+    const mergedConfig = { ...this.metadata, ...config };
+    const {
+      logger = defaultLogger,
+      shouldTriggerHelp = defaultShouldTriggerHelpForProgram,
+      argvFormatter = defaultArgvFormatter,
+      errorFormatter = defaultErrorFormatter,
+    } = mergedConfig;
 
     const name = argv[0];
     const command = this.commands[name];
@@ -50,48 +57,38 @@ class Program<Commands extends GenericCommands = EmptyObject> {
       if (argv.length === 0)
         throw new UsageError('COMMAND_MISSING', 'No command provided');
 
-      logger.log(`> ${argv.join(' ')}\n`);
-      return await match<string[], Promise<Output<Commands>>>(argv)
-        .with([P.union('help', '--help', '-h')], async () => {
-          // show global help
-          logger.log(this.help());
-          return { kind: 'help' };
-        })
-        .otherwise(async () => {
-          if (!command) {
-            throw new UsageError(
-              'COMMAND_NOT_FOUND',
-              `Command "${name}" not found`
-            );
-          }
-          return await this.runCommand({
-            name,
-            argv: argv.slice(1),
-            command,
-            config: mergedConfig,
-          });
+      logger.error(argvFormatter.format(argv) + '\n');
+
+      if (shouldTriggerHelp(argv)) {
+        // show global help
+        logger.error(this.help());
+        return { kind: 'help' };
+      } else {
+        if (!command) {
+          throw new CommandNotFoundError(name);
+        }
+        return await this.runCommand({
+          name,
+          argv: argv.slice(1),
+          command,
+          config: mergedConfig,
         });
+      }
     } catch (e) {
-      if (e instanceof UsageError) {
-        if (command) logger.log(command.help());
-        else logger.log(this.help());
+      if (e instanceof Error) {
+        logger.error(errorFormatter.format(e));
       }
 
-      if (command && e instanceof Error) {
-        logger.error(`\n========== ERROR ==========\n`);
-        logger.error(`Failed to run command:`);
-        logger.error(`> ${argv.join(' ')}`);
-        if (e.message) {
-          logger.error(`\nReason as follows:\n`);
-          logger.error(e.message);
-        }
+      if (e instanceof UsageError) {
+        if (command) logger.error(command.help());
+        else logger.error(this.help());
       }
       throw e;
     }
   }
 
   help(formatter: ProgramHelpFormatter = defaultHelpFormatter) {
-    return formatter.format(this.meta, this.commands);
+    return formatter.format(this.metadata, this.commands);
   }
 
   private async runCommand({
@@ -105,21 +102,36 @@ class Program<Commands extends GenericCommands = EmptyObject> {
     command: Command<any, any>;
     config: RuntimeConfig;
   }): Promise<Output<Commands>> {
-    return await match<string[], Promise<Output<Commands>>>(argv)
-      .with([P.union('--help', '-h')], async () => {
-        // show command help
-        config.logger?.log(command.help());
-        return { kind: 'help' };
-      })
-      .otherwise(async () => {
-        const output = await command.run(argv, config);
-        return {
-          kind: 'command',
-          command: name,
-          ...output,
-        } as Output<Commands>;
-      });
+    const {
+      shouldTriggerHelp = defaultShouldTriggerHelpForCommand,
+      logger = defaultLogger,
+    } = { ...command.metadata, ...config };
+
+    if (shouldTriggerHelp(argv)) {
+      // show command help
+      logger.error(command.help());
+      return { kind: 'help' };
+    } else {
+      const output = await command.run(argv, config);
+      return {
+        kind: 'command',
+        command: name,
+        ...output,
+      } as Output<Commands>;
+    }
   }
+}
+
+function defaultShouldTriggerHelpForProgram(argv: string[]): boolean {
+  return match(argv)
+    .with([P.union('help', '--help', '-h')], () => true)
+    .otherwise(() => false);
+}
+
+function defaultShouldTriggerHelpForCommand(argv: string[]): boolean {
+  return match(argv)
+    .with([P.union('--help', '-h')], () => true)
+    .otherwise(() => false);
 }
 
 type GenericCommands = { readonly [K: string]: Command<any, any> };

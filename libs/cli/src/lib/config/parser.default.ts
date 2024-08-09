@@ -2,7 +2,7 @@ import { camelCase } from 'change-case';
 import minimist from 'minimist';
 import { P, match } from 'ts-pattern';
 import { FALSY } from '../constant';
-import { UsageError } from '../error';
+import { ArgProblem, InvalidArgsError, UsageError } from '../error';
 import { TYPE, type Option, type OptionChoicesVariant } from '../option.types';
 import {
   EmptyObject,
@@ -41,7 +41,7 @@ export class MinimistParser implements Parser {
     });
 
     const args = { _: parsed._ } as ParserReturn<Options>;
-    const errors: string[] = [];
+    const errors: ArgProblem[] = [];
     for (const rawKey in options) {
       const camelKey = camelCase(rawKey) as keyof Options;
       const option = options[rawKey].spec;
@@ -61,14 +61,16 @@ export class MinimistParser implements Parser {
 
       // throw if required value is still undefined after fallback
       if (value === undefined && required) {
-        errors.push(`--${rawKey} is required`);
+        errors.push({ option: rawKey, kind: 'required' });
         continue;
       }
 
       // built-in validation
       if (value !== undefined) {
-        match(this.validate(rawKey, value, option))
-          .with({ success: false }, ({ error }) => errors.push(error))
+        match(this.validate(value, option))
+          .with({ success: false }, ({ error }) =>
+            errors.push({ option: rawKey, kind: 'validation', message: error })
+          )
           .with({ success: true }, ({ value }) => (args[camelKey] = value))
           .exhaustive();
       }
@@ -77,22 +79,39 @@ export class MinimistParser implements Parser {
       if (value !== undefined && option.validate) {
         match((option.validate as (value: any) => SimpleValidation<any>)(value))
           .with(true, noop)
-          .with(false, () => errors.push(`--${rawKey} is invalid`))
-          .with(P.string, (e) => errors.push(e))
-          .with({ success: false }, ({ error }) => errors.push(error))
+          .with(false, () =>
+            errors.push({
+              option: rawKey,
+              kind: 'custom-validation',
+            })
+          )
+          .with(P.string, (e) =>
+            errors.push({
+              option: rawKey,
+              kind: 'custom-validation',
+              message: e,
+            })
+          )
+          .with({ success: false }, ({ error }) =>
+            errors.push({
+              option: rawKey,
+              kind: 'custom-validation',
+              message: error,
+            })
+          )
           .with({ success: true }, (o) => (value = o.value)) // maybe-transformed value
           .exhaustive();
       }
     }
 
     if (errors.length > 0) {
-      throw new UsageError('RUNTIME_ERROR', errors.join('\n'));
+      throw new InvalidArgsError(errors);
     }
 
     return args;
   }
 
-  private validate(key: string, value: any, option: Option): Validation<any> {
+  private validate(value: any, option: Option): Validation<any> {
     const fail = (error: string): Validation<any> => ({
       success: false,
       error,
@@ -109,7 +128,7 @@ export class MinimistParser implements Parser {
       .with(['number', 'string'], () => {
         const num = Number(value);
         return isNaN(num)
-          ? fail(`--${key} must be a number but got ${value}`)
+          ? fail(`must be a number but got ${value} (${typeof value})`)
           : ok(num);
       })
 
@@ -118,9 +137,7 @@ export class MinimistParser implements Parser {
         match(value.filter((v: unknown) => typeof v !== 'number' || isNaN(v)))
           .with([], () => ok(value))
           .otherwise((nonNumbers) =>
-            fail(
-              `--${key} must be an number but got [${nonNumbers.join(', ')}]`
-            )
+            fail(`must be an number but got [${nonNumbers.join(', ')}]`)
           )
       )
 
@@ -140,18 +157,17 @@ export class MinimistParser implements Parser {
         return choices.includes(value)
           ? ok(value)
           : fail(
-              `--${key} must be one of [${choices.join(', ')}], ` +
-                `but got ${value}`
+              `must be one of [${choices.join(', ')}], ` + `but got ${value}`
             );
       })
       .with([P.union('number', 'boolean', 'string', 'choice'), 'array'], () =>
         fail(
-          `--${key} only accepts a single value but is specified multiple times with values: ` +
+          `only accepts a single value but is specified multiple times with values: ` +
             `[${value.join(', ')}]`
         )
       )
       .otherwise(([expected, actual]) =>
-        fail(`--${key} must be a ${expected} but got ${value} (${actual})`)
+        fail(`must be a ${expected} but got ${value} (${actual})`)
       );
   }
 }

@@ -197,7 +197,7 @@ describe('Command', () => {
         .option('foo', o.string({ required: true }))
         .handle(({ args }) => args.foo)
         .run([])
-    ).rejects.toThrowError('--foo is required');
+    ).rejects.toThrow('--foo is required');
   });
 
   it('should fill arg with env (string)', async () => {
@@ -244,7 +244,7 @@ describe('Command', () => {
         .option('foo', o.string({ fallback: () => undefined, required: true }))
         .handle(({ args }) => args.foo)
         .run([])
-    ).rejects.toThrowError('--foo is required');
+    ).rejects.toThrow('--foo is required');
   });
 
   it('should resolve undefined with fallback returning undefined', async () => {
@@ -312,7 +312,7 @@ describe('Command', () => {
         .option('foo', o.string())
         .handle(({ args }) => args.foo)
         .run(['--foo=bar', '--foo=baz'])
-    ).rejects.toThrowError(
+    ).rejects.toThrow(
       '--foo only accepts a single value but is specified multiple times with values: [bar, baz]'
     );
   });

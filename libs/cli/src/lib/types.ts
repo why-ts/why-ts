@@ -3,14 +3,20 @@ import { Parser } from './config/parser';
 import { Logger } from './config/logger';
 import { InferOptionType, Option } from './option.types';
 import { Prompter } from './config/prompter';
+import { ErrorFormatter } from './config/error-formatter';
+import { ArgvFormatter } from './config/argv-formatter';
 
-export type ProgramMeta = {
+type CommonMeta = {
   readonly description?: string;
+  readonly shouldTriggerHelp?: (argv: string[]) => boolean;
 };
 
-export type CommandMeta = {
-  readonly description?: string;
+export type ProgramMeta = CommonMeta & {
+  argvFormatter?: ArgvFormatter;
+  errorFormatter?: ErrorFormatter;
 };
+
+export type CommandMeta = CommonMeta;
 
 export type MetaArgs = { _: string[] };
 
