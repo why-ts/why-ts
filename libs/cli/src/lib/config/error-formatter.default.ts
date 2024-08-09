@@ -25,7 +25,8 @@ export class DefaultErrorFormatter implements ErrorFormatter {
                       kleur.red(`--${kleur.bold(v.option)} option is required`)
                     )
                     .with(
-                      { kind: 'custom-validation', message: undefined },
+                      { kind: 'custom-validation' },
+                      (v) => !v.message,
                       (v) =>
                         kleur.red(`--${kleur.bold(v.option)} option is invalid`)
                     )

@@ -1,3 +1,5 @@
+import { match } from 'ts-pattern';
+
 type UsageErrorType =
   | 'COMMAND_NOT_FOUND'
   | 'COMMAND_MISSING'
@@ -19,7 +21,21 @@ export class CommandNotFoundError extends UsageError {
 
 export class InvalidArgsError extends UsageError {
   constructor(public readonly problems: ArgProblem[]) {
-    super('INVALID_ARGS', `${problems}`);
+    super(
+      'INVALID_ARGS',
+      problems
+        .map((p) =>
+          match(p)
+            .with({ kind: 'required' }, (v) => `--${v.option} is required`)
+            .with(
+              { kind: 'custom-validation' },
+              (v) => !v.message,
+              (v) => `--${v.option} is invalid`
+            )
+            .otherwise((v) => `--${v.option} ${v.message}`)
+        )
+        .join('\n')
+    );
   }
 }
 

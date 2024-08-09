@@ -12,8 +12,8 @@ type CommonMeta = {
 };
 
 export type ProgramMeta = CommonMeta & {
-  argvFormatter?: ArgvFormatter;
-  errorFormatter?: ErrorFormatter;
+  readonly argvFormatter?: ArgvFormatter;
+  readonly errorFormatter?: ErrorFormatter;
 };
 
 export type CommandMeta = CommonMeta;
@@ -21,10 +21,10 @@ export type CommandMeta = CommonMeta;
 export type MetaArgs = { _: string[] };
 
 export type HandlerInput<A> = {
-  args: A & MetaArgs;
-  argv: string[];
-  logger: Logger;
-  prompter: Prompter;
+  readonly args: A & MetaArgs;
+  readonly argv: string[];
+  readonly logger: Logger;
+  readonly prompter: Prompter;
 };
 
 export type RuntimeConfig = {
@@ -36,7 +36,10 @@ export type RuntimeConfig = {
 
 export type EmptyObject = NonNullable<unknown>;
 export type GenericParsedArgs = Record<string, any>;
-export type AliasedOption = { aliases: string[]; spec: Option };
+export type AliasedOption = {
+  readonly aliases: string[];
+  readonly spec: Option;
+};
 export type GenericOptions = {
   readonly [K in string]: AliasedOption;
 };
