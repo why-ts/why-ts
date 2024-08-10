@@ -1,0 +1,14 @@
+{
+  "name": "@why-ts/cli",
+  "version": "0.0.1",
+  "dependencies": {
+    "change-case": "^4.1.2",
+    "kleur": "^4.1.5",
+    "minimist": "^1.2.8",
+    "prompts": "^2.4.2",
+    "table": "^6.8.2",
+    "ts-pattern": "^5.2.0",
+    "tslib": "^2.3.0",
+    "type-fest": "^4.23.0"
+  }
+}
