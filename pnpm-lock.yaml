@@ -112,6 +112,9 @@ devDependencies:
   jsdom:
     specifier: ~22.1.0
     version: 22.1.0
+  jsonc-eslint-parser:
+    specifier: ^2.4.0
+    version: 2.4.0
   nx:
     specifier: 19.5.6
     version: 19.5.6(@swc-node/register@1.9.2)(@swc/core@1.5.29)

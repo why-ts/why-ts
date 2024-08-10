@@ -1,4 +1,4 @@
-import { program, command, option as o, UsageError } from '@why-ts/cli';
+import { command, option as o, program } from '@why-ts/cli';
 import { match } from 'ts-pattern';
 import prompTestCommand from './prompt-test/command';
 
