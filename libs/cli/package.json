@@ -17,5 +17,8 @@
     "cli",
     "command",
     "terminal"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
