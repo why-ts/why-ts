@@ -14,7 +14,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@why-ts/cli": ["libs/cli/src/index.ts"]
+      "@why-ts/cli": ["libs/cli/src/index.ts"],
+      "@why-ts/core": ["libs/core/src/index.ts"],
+      "@why-ts/irpc": ["libs/irpc/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
