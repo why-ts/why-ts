@@ -2,7 +2,7 @@ import { camelCase } from 'change-case';
 import minimist from 'minimist';
 import { P, match } from 'ts-pattern';
 import { FALSY } from '../constant';
-import { ArgProblem, InvalidArgsError, UsageError } from '../error';
+import { ArgProblem, InvalidArgsError } from '../error';
 import { TYPE, type Option, type OptionChoicesVariant } from '../option.types';
 import {
   EmptyObject,
@@ -12,8 +12,8 @@ import {
   SimpleValidation,
   Validation,
 } from '../types';
-import { Env } from './env';
 import { noop } from '../util';
+import { Env } from './env';
 import { Parser } from './parser';
 
 type ParserReturn<Options extends GenericOptions = EmptyObject> =

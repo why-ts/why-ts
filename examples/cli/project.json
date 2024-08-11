@@ -1,7 +1,7 @@
 {
   "name": "example-cli",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/example-cli/src",
+  "sourceRoot": "examples/cli/src",
   "projectType": "application",
   "tags": [],
   "targets": {
@@ -11,12 +11,12 @@
       "defaultConfiguration": "production",
       "options": {
         "platform": "node",
-        "outputPath": "dist/apps/example-cli",
+        "outputPath": "dist/examples/cli",
         "format": ["cjs"],
         "bundle": false,
-        "main": "apps/example-cli/src/main.ts",
-        "tsConfig": "apps/example-cli/tsconfig.app.json",
-        "assets": ["apps/example-cli/src/assets"],
+        "main": "examples/cli/src/main.ts",
+        "tsConfig": "examples/cli/tsconfig.app.json",
+        "assets": ["examples/cli/src/assets"],
         "generatePackageJson": true,
         "esbuildOptions": {
           "sourcemap": true,
@@ -38,7 +38,7 @@
       }
     },
     "eval": {
-      "command": "TS_NODE_PROJECT=apps/example-cli/tsconfig.app.json node -r @swc-node/register apps/example-cli/src/main.ts"
+      "command": "TS_NODE_PROJECT=examples/cli/tsconfig.app.json node -r @swc-node/register examples/cli/src/main.ts"
     }
   }
 }

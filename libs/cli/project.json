@@ -18,9 +18,8 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/cli",
-        "tsConfig": "libs/cli/tsconfig.lib.json",
-        "packageJson": "libs/cli/package.json",
         "main": "libs/cli/src/index.ts",
+        "tsConfig": "libs/cli/tsconfig.lib.json",
         "assets": ["libs/cli/*.md"]
       }
     },

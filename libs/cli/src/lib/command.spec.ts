@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { command } from './command';
 import * as o from './option';
 
@@ -210,7 +211,7 @@ describe('Command', () => {
 
   it('should fill arg with env (number)', async () => {
     const output = await slient
-      .option('foo', o.number({ env: 'TS_JEST', required: true }))
+      .option('foo', o.number({ env: 'VITEST_WORKER_ID', required: true }))
       .handle(({ args }) => args.foo)
       .run([]);
     expect(output.result === 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -290,7 +291,7 @@ describe('Command', () => {
 
   it('should fallback to env var if defined (number)', async () => {
     const output = await slient
-      .option('foo-bar', o.number({ env: 'JEST_WORKER_ID' }))
+      .option('foo-bar', o.number({ env: 'VITEST_WORKER_ID' }))
       .handle(({ args }) => args.fooBar)
       .run([]);
     expect(output.args.fooBar && output.args.fooBar >= 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -299,7 +300,7 @@ describe('Command', () => {
 
   it('should fallback to env var if defined (boolean)', async () => {
     const output = await slient
-      .option('foo-bar', o.boolean({ env: 'JEST_WORKER_ID' }))
+      .option('foo-bar', o.boolean({ env: 'VITEST' }))
       .handle(({ args }) => args.fooBar)
       .run([]);
     expect(output.args.fooBar).toBe(true);

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { command } from './command';
 import * as o from './option';
 import { program } from './program';

@@ -1,7 +1,7 @@
-import { Mock, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { init } from './irpc';
 import { DYNAMIC, Nested } from './irpc.types';
-import { LocalBridgeTransport, PostMessageTransport } from './transport';
+import { LocalBridgeTransport } from './transport';
 
 type Methods = {
   foo: (v: number) => number;

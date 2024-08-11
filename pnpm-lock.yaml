@@ -121,9 +121,6 @@ devDependencies:
   jsdom:
     specifier: ~22.1.0
     version: 22.1.0
-  jsonc-eslint-parser:
-    specifier: ^2.4.0
-    version: 2.4.0
   nx:
     specifier: 19.5.6
     version: 19.5.6(@swc-node/register@1.9.2)(@swc/core@1.5.29)
@@ -2679,8 +2676,7 @@ packages:
       fast-glob: 3.2.7
       fs-extra: 11.2.0
       ignore: 5.3.1
-      js-tokens: 4.0.0
-      minimatch: 9.0.3
+      js-tokens: 4.0.0@nx/eslint-plugin
       npm-package-arg: 11.0.1
       npm-run-path: 4.0.1
       ora: 5.3.0
