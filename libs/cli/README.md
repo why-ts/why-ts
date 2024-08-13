@@ -2,6 +2,65 @@
 
 Building robust and maintainable command-line interfaces (CLIs) in TypeScript.
 
+## Quick Start
+
+```ts
+import { command, option as o, program } from '@why-ts/cli';
+
+(async () => {
+  const output = await program({ description: 'Example CLI' })
+    .command(
+      'say',
+      command({ description: 'Prints a message to the console' })
+        .option(
+          'what',
+          o.string({ required: true, description: 'The message to print' })
+        )
+        .handle(({ args }) => {
+          console.log(args.what);
+          return 0;
+        })
+    )
+    .run(process.argv.slice(2))
+    .catch(() => process.exit(1));
+
+  if (output.kind === 'command')
+    console.log(`Result: ${output.result}`);
+})();
+
+```
+
+Build and run the script:
+
+```bash
+> node index.js say --what="Hello, World!"
+
+Hello, World!
+Result: 0
+```
+
+```bash
+> node index.js --help
+
+Example CLI
+
+Available Commands:
+
+  say     Prints a message to the console   
+```
+
+```bash
+> node index.js say --help
+
+Prints a message to the console
+
+Required Flags:
+
+  --what     [string]     The message to print   
+```
+
+
+
 ## Commands
 
 Commands are constructed with the `command()` call and added to a Program with a string name.
