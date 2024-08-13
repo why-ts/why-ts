@@ -26,6 +26,7 @@ export class MinimistParser implements Parser {
     env: Env
   ): Promise<ParserReturn<Options>> {
     const parsed = minimist(argv, {
+      '--': true,
       string: Object.entries(options)
         .filter(([, v]) => v.spec[TYPE].startsWith('string')) // force minimist to parse input as string
         .map(([k]) => k),
@@ -40,7 +41,10 @@ export class MinimistParser implements Parser {
       ),
     });
 
-    const args = { _: parsed._ } as ParserReturn<Options>;
+    const args = {
+      _: parsed._,
+      '--': parsed['--'] ?? [],
+    } as ParserReturn<Options>;
     const errors: ArgProblem[] = [];
     for (const rawKey in options) {
       const camelKey = camelCase(rawKey) as keyof Options;

@@ -211,7 +211,9 @@ Example:
 
 ### Environment Variables
 
-An option can fallback to an environment variable if not specified via command line:
+An option can fallback to an environment variable if not specified via command line
+
+(See "Option Value Flow" section for the order of execution)
 
 ```ts
 import { command, option as o } from '@why-ts/cli';
@@ -233,10 +235,26 @@ Basic
 # {foo: 'apple', bar: 42}
 ```
 
+### Custom Fallback Value
+
+An option can be configured have a fallback.
+
+(See "Option Value Flow" section for the order of execution)
+
+```ts
+import { command, option as o } from '@why-ts/cli';
+command()
+  .option('foo', o.string({ fallback: () => 'orange' }))
+  .option('bar', o.number({ fallbaack: () => 42 }))
+  .handle(({ args }) => console.log(args));
+```
+
 ### Custom Validation
 
 While this library provides basic validations on user input (e.g. make sure a number value is provided to a number option),
 custom validations can be added over that.
+
+(See "Option Value Flow" section for the order of execution)
 
 ```ts
 import { command, option as o } from '@why-ts/cli';
@@ -255,6 +273,17 @@ Basic
 > ts-node index.ts --bar=5
 # Error: --bar is invalid
 ```
+
+### Option Value Flow
+
+Here is the order of how an option value is parsed and validated:
+
+1. Parse value from command line
+1. If `undefined`, read value from environment variable if `env` name is defined
+1. If still `undefined`, invoke `fallback` if defined
+1. If still `undefined` and `required`, throw an error
+1. Run built-in validation
+1. Run custom validation if defined
 
 ## Runtime Configuration
 
@@ -284,28 +313,27 @@ If none is provided anywhere, it will fallback to an internal default.
 
 ### Argument Parsing
 
-Represented by the `Parser` interface.
-Controls how shell arguments (string array) are parsed into typed values
-The default implementation is based on the `minimist` package.
+- Represented by the `Parser` interface.
+- Controls how shell arguments (string array) are parsed into typed values
+- The default implementation is based on the `minimist` package.
 
 ### Environment Variable Handling
 
-Represented by the `Env` interface.
-Controls how environment variables are retrieved and interpreted.
-The default implementation reads values from `process.env`.
-Then the value is transformed with `parseFloat` for numbers and splitting at comma(`,`) for array values.
+- Represented by the `Env` interface.
+- Controls how environment variables are retrieved and interpreted.
+- The default implementation reads values from `process.env`. Then the value is transformed with `parseFloat` for numbers and splitting at comma(`,`) for array values.
 
 ### Logging
 
-Represented by the `Logger` interface.
-Controls how output is logged to screen.
-The default implementation is `console.log` and `console.error`
+- Represented by the `Logger` interface.
+- Controls how output is logged to screen.
+- The default implementation is `console.log` and `console.error`
 
 ### Prompt for User Input
 
-Represented by the `Prompter` interface.
-Controls how input is captured from user.
-The default implementation is based on Node.js `readline` module.
+- Represented by the `Prompter` interface.
+- Controls how input is captured from user.
+- The default implementation is based on Node.js `readline` module.
 
 ### Help Formatter
 

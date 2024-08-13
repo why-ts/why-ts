@@ -18,7 +18,7 @@ export type ProgramMeta = CommonMeta & {
 
 export type CommandMeta = CommonMeta;
 
-export type MetaArgs = { _: string[] };
+export type MetaArgs = { _: string[]; '--': string[] };
 
 export type HandlerInput<A> = {
   readonly args: A & MetaArgs;

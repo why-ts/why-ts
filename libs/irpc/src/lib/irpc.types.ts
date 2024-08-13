@@ -150,7 +150,7 @@ export type Instance<P extends Params> = {
   destroy: () => void;
 };
 
-export const DYNAMIC = Symbol('DYNAMIC');
+export const DYNAMIC = Symbol('DYNAMIC'); // TODO: use Symbol.for
 export type DynamicCall = (name: string, ...args: any[]) => Promise<unknown>;
 
 type ToPath<S extends string> = Split<S, '.'>;
