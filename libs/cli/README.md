@@ -187,6 +187,8 @@ The following types are currently supported:
 - `o.strings()`: multiple string options, e.g. `--foo=orange --foo=apple`=> `{foo: ['orange', 'apple']}`
 - `o.number()`: single number option, e.g. `--foo=42` => `{foo: 42}`
 - `o.numbers()`: multiple number options, e.g. `--foo=42 --foo=100`=> `{foo: [42, 100]}`
+- `o.date()`: single date option, value will be passed to `new Date()`
+- `o.dates()`: multiple date options
 - `o.boolean()`: boolean option, e.g. `--foo` => `{foo: true}` (The default `Parser` will also interpret `--no-<name>`, i.e. `--no-foo` => `{foo: false}`)
 - `o.choice(['orange', 'apple'])`: only allow the specified string values, e.g. `--foo=lemon` will throw an error
 
@@ -418,7 +420,7 @@ Controls how the help text is formatted.
 
 ## TODO
 
-- More data types (e.g. Date)
+- More data types (e.g. Set, Map, etc)
 - allow customisation of falsy values
 - Shell completion
 - Auto prompt for missing options if `{required: 'prompt'}`

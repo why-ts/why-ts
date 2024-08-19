@@ -24,12 +24,16 @@ export type InferOptionValueType<O extends Option> = O extends {
   [TYPE]: 'number';
 }
   ? number
+  : O extends { [TYPE]: 'numbers' }
+  ? number[]
+  : O extends { [TYPE]: 'date' }
+  ? Date
+  : O extends { [TYPE]: 'dates' }
+  ? Date[]
   : O extends { [TYPE]: 'boolean' }
   ? boolean
   : O extends { [TYPE]: 'strings' }
   ? string[]
-  : O extends { [TYPE]: 'numbers' }
-  ? number[]
   : O extends { [TYPE]: 'choice'; choices: infer C }
   ? C extends readonly string[]
     ? C[number]
@@ -53,41 +57,71 @@ export type OptionVariant =
   | OptionStringVariant
   | OptionNumberArrayVariant
   | OptionNumberVariant
+  | OptionDateVariant
+  | OptionDateArrayVariant
   | OptionBooleanVariant;
 
 export type OptionStringVariant = {
   readonly [TYPE]: 'string';
   readonly fallback?: () => string | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<string>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<string>;
 };
 
 export type OptionStringArrayVariant = {
   readonly [TYPE]: 'strings';
   readonly fallback?: () => string[] | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<string[]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<string[]>;
 };
 
 export type OptionNumberVariant = {
   readonly [TYPE]: 'number';
   readonly fallback?: () => number | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<number>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<number>;
 };
 
 export type OptionNumberArrayVariant = {
   readonly [TYPE]: 'numbers';
   readonly fallback?: () => number[] | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<number[]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<number[]>;
+};
+
+export type OptionDateVariant = {
+  readonly [TYPE]: 'date';
+  readonly fallback?: () => Date | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<Date>;
+};
+
+export type OptionDateArrayVariant = {
+  readonly [TYPE]: 'dates';
+  readonly fallback?: () => Date[] | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<Date[]>;
 };
 
 export type OptionBooleanVariant = {
   readonly [TYPE]: 'boolean';
   readonly fallback?: () => boolean | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<boolean>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<boolean>;
 };
 
 export type OptionChoicesVariant<T extends string = string> = {
   readonly [TYPE]: 'choice';
   readonly choices: readonly T[];
   readonly fallback?: () => T | undefined;
-  readonly validate?: (value: unknown) => SimpleValidation<T>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<T>;
 };

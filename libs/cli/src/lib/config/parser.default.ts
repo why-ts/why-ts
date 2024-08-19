@@ -140,18 +140,44 @@ export class MinimistParser implements Parser {
       .with(['number', P.string], ([, v]) => {
         const num = Number(v);
         return isNaN(num)
-          ? fail(`must be a number but got ${value} (${typeof value})`)
+          ? fail(`must be a number but got ${this.printValue(value)}`)
           : ok(num);
       })
 
       .with(['numbers', P.number], ([, v]) => ok([v]))
-      .with(['numbers', P.array()], ([, v]) =>
-        match(v.filter((x) => typeof x !== 'number' || isNaN(x)))
+      .with(['numbers', P.array(P.number)], ([, v]) =>
+        match(v.filter(isNaN))
           .with([], () => ok(value))
-          .otherwise((nonNumbers) =>
-            fail(`must be an number but got [${nonNumbers.join(', ')}]`)
+          .otherwise((invalid) =>
+            fail(`must be an number but got ${this.printValue(invalid)}`)
           )
       )
+
+      .with(['date', P.string.or(P.number)], ([, v]) => {
+        const date = new Date(v);
+        return isNaN(date.getTime())
+          ? fail(`must be a date but got ${this.printValue(value)}`)
+          : ok(date);
+      })
+
+      .with(['dates', P.string.or(P.number)], ([, v]) => {
+        const date = new Date(v);
+        return isNaN(date.getTime())
+          ? fail(`must be an date but got ${this.printValue(value)}`)
+          : ok([date]);
+      })
+      .with(['dates', P.array(P.string.or(P.number))], ([, v]) => {
+        const dates = v.map((x) => [x, new Date(x)] as const);
+        return match(dates.filter(([, x]) => isNaN(x.getTime())))
+          .with([], () => ok(dates.map(([, x]) => x)))
+          .otherwise((invalid) =>
+            fail(
+              `must be an array of dates but got ${this.printValue(
+                invalid.map(([x]) => x)
+              )}`
+            )
+          );
+      })
 
       .with(['boolean', P.string], ([, v]) =>
         ok(!FALSY.includes(v.toLowerCase()))
@@ -168,22 +194,43 @@ export class MinimistParser implements Parser {
         const { choices } = option as OptionChoicesVariant;
         return choices.includes(v)
           ? ok(v)
-          : fail(`must be one of [${choices.join(', ')}], ` + `but got ${v}`);
+          : fail(
+              `must be one of [${choices.join(', ')}] ` +
+                `but got ${this.printValue(v)}`
+            );
       })
       .with(
         [P.union('number', 'boolean', 'string', 'choice'), P.array()],
         ([, v]) =>
           fail(
             `only accepts a single value but is specified multiple times with values: ` +
-              `[${v.join(', ')}]`
+              this.printValue(v)
           )
       )
-      .otherwise(([expected, v]) => {
-        const actual = match(typeof value)
-          .with('object', () => (Array.isArray(value) ? 'array' : 'object'))
-          .otherwise((type) => type);
-        return fail(`must be a ${expected} but got ${v} (${actual})`);
+      .otherwise(([e, v]) => {
+        const expected = match(e)
+          .with(
+            P.union('numbers', 'dates', 'strings'),
+            () => `an array of ${e}`
+          )
+          .otherwise((e) => `a ${e}`);
+
+        return fail(`must be ${expected} but got ${this.printValue(v)}`);
       });
+  }
+
+  private printValue(v: unknown): string {
+    const typeOf = (v: unknown) =>
+      match(v)
+        .with(P.array(), () => 'array')
+        .with(P.instanceOf(Date), () => 'date')
+        .otherwise(() => typeof v);
+
+    const printSingle = (v: unknown) => `${v} (${typeOf(v)})`;
+
+    return Array.isArray(v)
+      ? `[${v.map(printSingle).join(', ')}]`
+      : printSingle(v);
   }
 }
 

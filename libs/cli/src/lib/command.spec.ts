@@ -87,7 +87,9 @@ describe('Command', () => {
         .option('foo', o.choice(CHOICES))
         .handle(({ args }) => args.foo)
         .run(['--foo', 'barbaz'])
-    ).rejects.toThrow('--foo must be one of [bar, baz], but got barbaz');
+    ).rejects.toThrow(
+      /^--foo must be one of \[bar, baz\] but got barbaz \(string\)$/
+    );
   });
 
   it('should parse number', async () => {
@@ -104,6 +106,22 @@ describe('Command', () => {
       .handle(({ args }) => args.foo)
       .run(['-f=42']);
     expect(output.result === 42).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should parse date', async () => {
+    const output = await slient
+      .option('foo', o.date())
+      .handle(({ args }) => args.foo)
+      .run(['--foo=1724132917000']);
+    expect(output.result?.getTime() === 1724132917000).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should parse date (alias)', async () => {
+    const output = await slient
+      .option(['foo', 'f'], o.date())
+      .handle(({ args }) => args.foo)
+      .run(['-f=2024-08-20T05:49:00Z']);
+    expect(output.result?.getTime() === 1724132940000).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
   });
 
   it('should parse boolean', async () => {
@@ -166,7 +184,39 @@ describe('Command', () => {
         .option('foo', o.numbers())
         .handle(({ args }) => args.foo)
         .run(['--foo', 'bar', '--foo', '42'])
-    ).rejects.toThrow('--foo must be an number but got [bar]');
+    ).rejects.toThrow(
+      /^--foo must be an array of numbers but got \[bar \(string\), 42 \(number\)\]$/
+    );
+  });
+
+  it('should parse single arg as date array', async () => {
+    const output = await slient
+      .option('foo', o.dates())
+      .handle(({ args }) => args.foo)
+      .run(['--foo', '1724132917000']);
+    expect(output.result?.length === 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+    expect(output.result?.[0].getTime() === 1724132917000).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should parse multiple args as date array', async () => {
+    const output = await slient
+      .option('foo', o.dates())
+      .handle(({ args }) => args.foo)
+      .run(['--foo', '1724132917000', '--foo', '2024-08-20T05:49:00Z']);
+    expect(output.result?.length === 2).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+    expect(output.result?.[0].getTime() === 1724132917000).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+    expect(output.result?.[1].getTime() === 1724132940000).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
+  });
+
+  it('should fail to parse invalid values as date array', async () => {
+    await expect(() =>
+      slient
+        .option('foo', o.dates())
+        .handle(({ args }) => args.foo)
+        .run(['--foo', '1724132917000', '--foo', 'bar'])
+    ).rejects.toThrow(
+      /^--foo must be an array of dates but got \[bar \(string\)\]$/
+    );
   });
 
   it('should parse negated boolean', async () => {
@@ -198,7 +248,7 @@ describe('Command', () => {
         .option('foo', o.string({ required: true }))
         .handle(({ args }) => args.foo)
         .run([])
-    ).rejects.toThrow('--foo is required');
+    ).rejects.toThrow(/^--foo is required$/);
   });
 
   it('should fill arg with env (string)', async () => {
@@ -245,7 +295,7 @@ describe('Command', () => {
         .option('foo', o.string({ fallback: () => undefined, required: true }))
         .handle(({ args }) => args.foo)
         .run([])
-    ).rejects.toThrow('--foo is required');
+    ).rejects.toThrow(/^--foo is required$/);
   });
 
   it('should resolve undefined with fallback returning undefined', async () => {
@@ -314,7 +364,7 @@ describe('Command', () => {
         .handle(({ args }) => args.foo)
         .run(['--foo=bar', '--foo=baz'])
     ).rejects.toThrow(
-      '--foo only accepts a single value but is specified multiple times with values: [bar, baz]'
+      /^--foo only accepts a single value but is specified multiple times with values: \[bar \(string\), baz \(string\)\]$/
     );
   });
 
@@ -355,12 +405,12 @@ describe('Command', () => {
             validate: (v) =>
               v < 5
                 ? { success: true, value: v }
-                : { success: false, error: '--foo must be less than 5' },
+                : { success: false, error: 'must be less than 5' },
           })
         )
         .handle(({ args }) => args.foo * args.foo)
         .run(['--foo=6'])
-    ).rejects.toThrow('--foo must be less than 5');
+    ).rejects.toThrow(/^--foo must be less than 5$/);
   });
 
   it('should handle custom validation (simple+success)', async () => {
@@ -389,7 +439,7 @@ describe('Command', () => {
         )
         .handle(({ args }) => args.foo * args.foo)
         .run(['--foo=6'])
-    ).rejects.toThrow('--foo is invalid');
+    ).rejects.toThrow(/^--foo is invalid$/);
   });
 
   it('should handle custom validation (simple+error)', async () => {
@@ -399,11 +449,11 @@ describe('Command', () => {
           'foo',
           o.number({
             required: true,
-            validate: (v) => v < 5 || '--foo must be less than 5',
+            validate: (v) => v < 5 || 'must be less than 5',
           })
         )
         .handle(({ args }) => args.foo * args.foo)
         .run(['--foo=6'])
-    ).rejects.toThrow('--foo must be less than 5');
+    ).rejects.toThrow(/^--foo must be less than 5$/);
   });
 });

@@ -2,6 +2,8 @@ import {
   OptionBase,
   OptionBooleanVariant,
   OptionChoicesVariant,
+  OptionDateArrayVariant,
+  OptionDateVariant,
   OptionNumberArrayVariant,
   OptionNumberVariant,
   OptionStringArrayVariant,
@@ -56,6 +58,30 @@ export function number<O extends OptionBase>(
     [TYPE]: 'number',
     ...options,
   } as O & OptionNumberVariant;
+}
+
+export function dates<O extends OptionBase>(
+  options?: O & {
+    fallback?: () => Date[] | undefined;
+    validate?: (value: Date[]) => SimpleValidation<Date[]>;
+  }
+): O & OptionDateArrayVariant {
+  return {
+    [TYPE]: 'dates',
+    ...options,
+  } as O & OptionDateArrayVariant;
+}
+
+export function date<O extends OptionBase>(
+  options?: O & {
+    fallback?: () => Date | undefined;
+    validate?: (value: Date) => SimpleValidation<Date>;
+  }
+): O & OptionDateVariant {
+  return {
+    [TYPE]: 'date',
+    ...options,
+  } as O & OptionDateVariant;
 }
 
 export function boolean<O extends OptionBase>(
