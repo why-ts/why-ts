@@ -179,7 +179,7 @@ describe('Command', () => {
   });
 
   it('should fail to parse string as number array', async () => {
-    await expect(() =>
+    await expect(
       slient
         .option('foo', o.numbers())
         .handle(({ args }) => args.foo)
@@ -209,7 +209,7 @@ describe('Command', () => {
   });
 
   it('should fail to parse invalid values as date array', async () => {
-    await expect(() =>
+    await expect(
       slient
         .option('foo', o.dates())
         .handle(({ args }) => args.foo)
@@ -396,7 +396,7 @@ describe('Command', () => {
   });
 
   it('should handle custom validation (failure)', async () => {
-    expect(
+    await expect(
       slient
         .option(
           'foo',
@@ -428,7 +428,7 @@ describe('Command', () => {
   });
 
   it('should handle custom validation (simple+failure)', async () => {
-    expect(
+    await expect(
       slient
         .option(
           'foo',
@@ -443,7 +443,7 @@ describe('Command', () => {
   });
 
   it('should handle custom validation (simple+error)', async () => {
-    expect(
+    await expect(
       slient
         .option(
           'foo',
