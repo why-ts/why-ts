@@ -35,7 +35,7 @@ export type RuntimeConfig = {
 };
 
 export type EmptyObject = NonNullable<unknown>;
-export type GenericParsedArgs = Record<string, any>;
+export type GenericParsedArgs = Record<string, unknown>;
 
 export type Aliasable<N extends string> =
   | N

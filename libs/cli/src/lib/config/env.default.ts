@@ -9,14 +9,14 @@ export class DefaultEnv implements Env {
     return this.hasProcessEnv ? process.env[key] : undefined;
   }
 
-  transform(value: string, type: OptionValueType): any {
+  transform(value: string, type: OptionValueType): unknown {
     switch (type) {
       case 'number':
         return parseFloat(value);
       case 'numbers':
         return value.split(',').map(parseFloat);
       case 'boolean':
-        return !FALSY.includes(value.toLowerCase() as any);
+        return !FALSY.includes(value.toLowerCase());
       case 'strings':
         return value.split(',');
       default:

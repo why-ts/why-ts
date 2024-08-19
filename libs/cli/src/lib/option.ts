@@ -19,7 +19,7 @@ export function strings<O extends OptionBase>(
   return {
     [TYPE]: 'strings',
     ...options,
-  } as any;
+  } as O & OptionStringArrayVariant;
 }
 
 export function string<O extends OptionBase>(
@@ -31,7 +31,7 @@ export function string<O extends OptionBase>(
   return {
     [TYPE]: 'string',
     ...options,
-  } as any;
+  } as O & OptionStringVariant;
 }
 
 export function numbers<O extends OptionBase>(
@@ -43,7 +43,7 @@ export function numbers<O extends OptionBase>(
   return {
     [TYPE]: 'numbers',
     ...options,
-  } as any;
+  } as O & OptionNumberArrayVariant;
 }
 
 export function number<O extends OptionBase>(
@@ -55,7 +55,7 @@ export function number<O extends OptionBase>(
   return {
     [TYPE]: 'number',
     ...options,
-  } as any;
+  } as O & OptionNumberVariant;
 }
 
 export function boolean<O extends OptionBase>(
@@ -67,7 +67,7 @@ export function boolean<O extends OptionBase>(
   return {
     [TYPE]: 'boolean',
     ...options,
-  } as any;
+  } as O & OptionBooleanVariant;
 }
 
 // TODO: support generating choice via async function (`choice: () => Promise<readonly T[]>`)
@@ -82,5 +82,5 @@ export function choice<T extends string, O extends OptionBase>(
     [TYPE]: 'choice',
     choices,
     ...options,
-  } as any;
+  } as O & OptionChoicesVariant<T>;
 }

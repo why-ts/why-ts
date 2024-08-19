@@ -1,4 +1,4 @@
 export type Logger = {
-  log(...data: any[]): void;
-  error(...data: any[]): void;
+  log(...data: unknown[]): void;
+  error(...data: unknown[]): void;
 };

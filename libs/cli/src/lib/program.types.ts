@@ -4,6 +4,7 @@ import {
   Aliasable,
   Aliased,
   EmptyObject,
+  GenericOptions,
   ProgramMeta,
   RuntimeConfig,
 } from './types';
@@ -13,7 +14,7 @@ export interface Program<Commands extends GenericCommands = EmptyObject> {
   readonly commands: Commands;
   readonly metadata: ProgramMeta & RuntimeConfig;
 
-  command<N extends string, C extends Command<any, any>>(
+  command<N extends string, C extends Command<GenericOptions, unknown>>(
     name: Aliasable<N>,
     command: C
   ): Program<ExtendedCommands<Commands, N, C>>;
@@ -26,7 +27,7 @@ export interface Program<Commands extends GenericCommands = EmptyObject> {
 export type ExtendedCommands<
   Commands extends GenericCommands,
   N extends string,
-  C extends Command<any, any>
+  C extends Command<GenericOptions, unknown>
 > = Commands & { [_ in N]: Aliased<C> };
 
 export type ProgramOutput<Commands extends GenericCommands> =
@@ -37,14 +38,10 @@ export type ProgramOutput<Commands extends GenericCommands> =
     }>)
   | { kind: 'help' };
 
-type InferCommandOutput<C extends Command<any, any>> = C extends Command<
-  infer O,
-  infer R
->
-  ? CommandOutput<O, R>
-  : never;
+type InferCommandOutput<C extends Command<GenericOptions, unknown>> =
+  C extends Command<infer O, infer R> ? CommandOutput<O, R> : never;
 
-type StringKeyOf<O extends Record<string, any>> = keyof O;
-type UnionFromRecord<O extends Record<string, any>> = {
+type StringKeyOf<O extends Record<string, unknown>> = keyof O;
+type UnionFromRecord<O extends Record<string, unknown>> = {
   [K in StringKeyOf<O>]: O[K] & { command: K };
 }[StringKeyOf<O>];

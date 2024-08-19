@@ -50,7 +50,7 @@ export type HandlerReplacement<O extends GenericOptions, R1, R2> = (
 ) => R2;
 
 export type GenericCommands = {
-  readonly [K: string]: Aliased<Command<any, any>>;
+  readonly [K: string]: Aliased<Command<GenericOptions, unknown>>;
 };
 
 export type ExtendedOptions<

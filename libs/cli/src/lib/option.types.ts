@@ -58,36 +58,36 @@ export type OptionVariant =
 export type OptionStringVariant = {
   readonly [TYPE]: 'string';
   readonly fallback?: () => string | undefined;
-  readonly validate?: (value: any) => SimpleValidation<string>;
+  readonly validate?: (value: unknown) => SimpleValidation<string>;
 };
 
 export type OptionStringArrayVariant = {
   readonly [TYPE]: 'strings';
   readonly fallback?: () => string[] | undefined;
-  readonly validate?: (value: any) => SimpleValidation<string[]>;
+  readonly validate?: (value: unknown) => SimpleValidation<string[]>;
 };
 
 export type OptionNumberVariant = {
   readonly [TYPE]: 'number';
   readonly fallback?: () => number | undefined;
-  readonly validate?: (value: any) => SimpleValidation<number>;
+  readonly validate?: (value: unknown) => SimpleValidation<number>;
 };
 
 export type OptionNumberArrayVariant = {
   readonly [TYPE]: 'numbers';
   readonly fallback?: () => number[] | undefined;
-  readonly validate?: (value: any) => SimpleValidation<number[]>;
+  readonly validate?: (value: unknown) => SimpleValidation<number[]>;
 };
 
 export type OptionBooleanVariant = {
   readonly [TYPE]: 'boolean';
   readonly fallback?: () => boolean | undefined;
-  readonly validate?: (value: any) => SimpleValidation<boolean>;
+  readonly validate?: (value: unknown) => SimpleValidation<boolean>;
 };
 
 export type OptionChoicesVariant<T extends string = string> = {
   readonly [TYPE]: 'choice';
   readonly choices: readonly T[];
   readonly fallback?: () => T | undefined;
-  readonly validate?: (value: any) => SimpleValidation<T>;
+  readonly validate?: (value: unknown) => SimpleValidation<T>;
 };

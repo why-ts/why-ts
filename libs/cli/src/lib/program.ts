@@ -7,7 +7,13 @@ import { type ProgramHelpFormatter } from './config/program-help-formatter';
 import defaultHelpFormatter from './config/program-help-formatter.default';
 import { CommandNotFoundError, UsageError } from './error';
 import { ExtendedCommands, Program, ProgramOutput } from './program.types';
-import { Aliasable, EmptyObject, ProgramMeta, RuntimeConfig } from './types';
+import {
+  Aliasable,
+  EmptyObject,
+  GenericOptions,
+  ProgramMeta,
+  RuntimeConfig,
+} from './types';
 import { extractAliases } from './util';
 
 export function program(metadata: ProgramMeta & RuntimeConfig = {}): Program {
@@ -22,7 +28,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
     public readonly metadata: ProgramMeta & RuntimeConfig
   ) {}
 
-  command<N extends string, C extends Command<any, any>>(
+  command<N extends string, C extends Command<GenericOptions, unknown>>(
     name: Aliasable<N>,
     command: C
   ): Program<ExtendedCommands<Commands, N, C>> {
@@ -49,7 +55,10 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
       errorFormatter = defaultErrorFormatter,
     } = mergedConfig;
 
-    const handleError = (e: unknown, command?: Command<any, any>) => {
+    const handleError = (
+      e: unknown,
+      command?: Command<GenericOptions, unknown>
+    ) => {
       if (e instanceof Error) {
         logger.error(errorFormatter.format(e));
       }
@@ -97,7 +106,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
 
   private lookupCommand(name: string): {
     name: string;
-    command?: Command<any, any>;
+    command?: Command<GenericOptions, unknown>;
     alias?: string;
   } {
     const command = this.commands[name];
@@ -121,7 +130,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
   }: {
     name: string;
     argv: string[];
-    command: Command<any, any>;
+    command: Command<GenericOptions, unknown>;
     config: RuntimeConfig;
   }): Promise<ProgramOutput<Commands>> {
     const {

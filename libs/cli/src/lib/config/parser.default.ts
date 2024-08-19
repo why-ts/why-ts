@@ -75,13 +75,21 @@ export class MinimistParser implements Parser {
           .with({ success: false }, ({ error }) =>
             errors.push({ option: rawKey, kind: 'validation', message: error })
           )
-          .with({ success: true }, ({ value }) => (args[camelKey] = value))
+          .with(
+            { success: true },
+            ({ value }) =>
+              (args[camelKey] = value as ParserReturn<Options>[keyof Options])
+          )
           .exhaustive();
       }
 
       // custom validation
       if (value !== undefined && option.validate) {
-        match((option.validate as (value: any) => SimpleValidation<any>)(value))
+        match(
+          (option.validate as (value: unknown) => SimpleValidation<unknown>)(
+            value
+          )
+        )
           .with(true, noop)
           .with(false, () =>
             errors.push({
@@ -115,64 +123,67 @@ export class MinimistParser implements Parser {
     return args;
   }
 
-  private validate(value: any, option: Option): Validation<any> {
-    const fail = (error: string): Validation<any> => ({
+  private validate(value: unknown, option: Option): Validation<unknown> {
+    const fail = (error: string): Validation<unknown> => ({
       success: false,
       error,
     });
-    const ok = (value: any): Validation<any> => ({ success: true, value });
+    const ok = (value: unknown): Validation<unknown> => ({
+      success: true,
+      value,
+    });
 
     const expected = option[TYPE];
-    const actual = match(typeof value)
-      .with('object', () => (Array.isArray(value) ? 'array' : 'object'))
-      .otherwise((type) => type);
 
-    return match([expected, actual])
-      .with(['number', 'number'], () => ok(value))
-      .with(['number', 'string'], () => {
-        const num = Number(value);
+    return match([expected, value])
+      .with(['number', P.number], ([, v]) => ok(v))
+      .with(['number', P.string], ([, v]) => {
+        const num = Number(v);
         return isNaN(num)
           ? fail(`must be a number but got ${value} (${typeof value})`)
           : ok(num);
       })
 
-      .with(['numbers', 'number'], () => ok([value]))
-      .with(['numbers', 'array'], () =>
-        match(value.filter((v: unknown) => typeof v !== 'number' || isNaN(v)))
+      .with(['numbers', P.number], ([, v]) => ok([v]))
+      .with(['numbers', P.array()], ([, v]) =>
+        match(v.filter((x) => typeof x !== 'number' || isNaN(x)))
           .with([], () => ok(value))
           .otherwise((nonNumbers) =>
             fail(`must be an number but got [${nonNumbers.join(', ')}]`)
           )
       )
 
-      .with(['boolean', 'string'], () =>
-        ok(!FALSY.includes(value.toLowerCase()))
+      .with(['boolean', P.string], ([, v]) =>
+        ok(!FALSY.includes(v.toLowerCase()))
       )
-      .with(['boolean', 'number'], () => ok(value !== 0))
-      .with(['boolean', 'boolean'], () => ok(value))
+      .with(['boolean', P.number], ([, v]) => ok(v !== 0))
+      .with(['boolean', P.boolean], ([, v]) => ok(v))
 
-      .with(['string', 'string'], () => ok(value))
+      .with(['string', P.string], ([, v]) => ok(v))
 
-      .with(['strings', 'string'], () => ok([value]))
-      .with(['strings', 'array'], () => ok(value.map(String)))
+      .with(['strings', P.string], ([, v]) => ok([v]))
+      .with(['strings', P.array()], ([, v]) => ok(v.map(String)))
 
-      .with(['choice', 'string'], () => {
+      .with(['choice', P.string], ([, v]) => {
         const { choices } = option as OptionChoicesVariant;
-        return choices.includes(value)
-          ? ok(value)
-          : fail(
-              `must be one of [${choices.join(', ')}], ` + `but got ${value}`
-            );
+        return choices.includes(v)
+          ? ok(v)
+          : fail(`must be one of [${choices.join(', ')}], ` + `but got ${v}`);
       })
-      .with([P.union('number', 'boolean', 'string', 'choice'), 'array'], () =>
-        fail(
-          `only accepts a single value but is specified multiple times with values: ` +
-            `[${value.join(', ')}]`
-        )
+      .with(
+        [P.union('number', 'boolean', 'string', 'choice'), P.array()],
+        ([, v]) =>
+          fail(
+            `only accepts a single value but is specified multiple times with values: ` +
+              `[${v.join(', ')}]`
+          )
       )
-      .otherwise(([expected, actual]) =>
-        fail(`must be a ${expected} but got ${value} (${actual})`)
-      );
+      .otherwise(([expected, v]) => {
+        const actual = match(typeof value)
+          .with('object', () => (Array.isArray(value) ? 'array' : 'object'))
+          .otherwise((type) => type);
+        return fail(`must be a ${expected} but got ${v} (${actual})`);
+      });
   }
 }
 
