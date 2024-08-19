@@ -138,14 +138,18 @@ command()
 
 ### Command Alias
 
+To specify alias(es) for a command, use an array as the name. The first name will be used to type the output object.
+
 ```ts
 import { program, command, option as o } from '@why-ts/cli';
 const output = await program()
   .command(
-    {name:'foo', aliases:['f']},
+    ['foo', 'f'],
     command().handle(() => console.log('Running foo'))
   )
   .run(process.argv.slice(2));
+  
+// output.command == 'foo'
 ```
 
 ```bash
@@ -220,11 +224,11 @@ Boolean false values can also be specified with the `--no-<name>` option:
 
 ### Aliases
 
-Option aliases can be specified with an object in the `.option()` function.
+Option aliases can be specified by using an array as the option name. The first name will be used to type the args object.
 
 ```ts
 command()
-  .option({ name: 'foo', aliases: ['f'] }, o.string())
+  .option(['foo', 'f'], o.string())
   .handle(({ args }) => console.log(args)); // type of `args`: {foo?:string}
 ```
 

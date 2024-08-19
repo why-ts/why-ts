@@ -41,9 +41,7 @@ describe('Program', () => {
 
   it('should run a aliased command', async () => {
     expect(
-      await slient
-        .command({ name: 'c1', aliases: ['cmd1'] }, c1)
-        .run(['cmd1', '--foo', 'bar'])
+      await slient.command(['c1', 'cmd1'], c1).run(['cmd1', '--foo', 'bar'])
     ).toEqual({
       kind: 'command',
       command: 'c1',

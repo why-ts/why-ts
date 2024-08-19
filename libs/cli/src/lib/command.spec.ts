@@ -21,7 +21,7 @@ describe('Command', () => {
 
   it('should parse string (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.string())
+      .option(['foo', 'f'], o.string())
       .handle(({ args }) => args.foo)
       .run(['-f', 'bar']);
     expect(output.result === 'bar').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -38,7 +38,7 @@ describe('Command', () => {
 
   it('should parse single arg as string array (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.strings())
+      .option(['foo', 'f'], o.strings())
       .handle(({ args }) => args.foo)
       .run(['-f', 'bar']);
     expect(output.result?.length === 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -57,7 +57,7 @@ describe('Command', () => {
 
   it('should parse multiple args as string array (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.strings())
+      .option(['foo', 'f'], o.strings())
       .handle(({ args }) => args.foo)
       .run(['-f', 'bar', '-f', '42']);
     expect(output.result?.length === 2).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -75,7 +75,7 @@ describe('Command', () => {
 
   it('should parse choice (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.choice(CHOICES))
+      .option(['foo', 'f'], o.choice(CHOICES))
       .handle(({ args }) => args.foo)
       .run(['-f', 'bar']);
     expect(output.result === 'bar').toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -100,7 +100,7 @@ describe('Command', () => {
 
   it('should parse number (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.number())
+      .option(['foo', 'f'], o.number())
       .handle(({ args }) => args.foo)
       .run(['-f=42']);
     expect(output.result === 42).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -116,7 +116,7 @@ describe('Command', () => {
 
   it('should parse boolean (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.boolean())
+      .option(['foo', 'f'], o.boolean())
       .handle(({ args }) => args.foo)
       .run(['-f']);
     expect(output.result).toBe(true);
@@ -143,7 +143,7 @@ describe('Command', () => {
 
   it('should parse single arg as number array (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.numbers())
+      .option(['foo', 'f'], o.numbers())
       .handle(({ args }) => args.foo)
       .run(['-f', '42']);
     expect(output.result?.length === 1).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking
@@ -152,7 +152,7 @@ describe('Command', () => {
 
   it('should parse multiple args as number array (alias)', async () => {
     const output = await slient
-      .option({ name: 'foo', aliases: ['f'] }, o.numbers())
+      .option(['foo', 'f'], o.numbers())
       .handle(({ args }) => args.foo)
       .run(['-f', '2', '-f', '42']);
     expect(output.result?.length === 2).toBe(true); // this === format is for type checking at compile time cause jest doesn't any type checking

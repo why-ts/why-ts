@@ -1,4 +1,11 @@
 import { CamelCase } from 'type-fest';
+import {
+  Command,
+  Handler,
+  HandlerReplacement,
+  Metadata,
+  CommandOutput,
+} from './command.types';
 import { type CommandHelpFormatter } from './config/command-help-formatter';
 import defaultHelpFormatter from './config/command-help-formatter.default';
 import defaultEnv from './config/env.default';
@@ -7,24 +14,23 @@ import defaultParser from './config/parser.default';
 import defaultPrompter from './config/prompter.default';
 import { type Option } from './option.types';
 import {
-  CommandOutput,
   EmptyObject,
   GenericOptions,
   HandlerInput,
-  CommandMeta as Meta,
   ParsedArgsFromOptions,
   RuntimeConfig,
 } from './types';
-import { noop } from './util';
+import { extractAliases, noop } from './util';
 
-export function command(metadata: Metadata = {}) {
-  return new Command(noop, {}, metadata);
+export function command(metadata: Metadata = {}): Command {
+  return new CommandImpl(noop, {}, metadata);
 }
 
-export class Command<
+class CommandImpl<
   Options extends GenericOptions = EmptyObject,
   HandlerResult = void
-> {
+> implements Command<Options, HandlerResult>
+{
   constructor(
     private handler: Handler<Options, HandlerResult>,
     public readonly options: Options,
@@ -36,26 +42,25 @@ export class Command<
   ): Command<Options, HandlerResult> {
     if (typeof metadata === 'function') metadata = metadata(this.metadata);
 
-    return new Command(this.handler, this.options, {
+    return new CommandImpl(this.handler, this.options, {
       ...this.metadata,
       ...metadata,
     });
   }
 
   option<N extends string, O extends Option>(
-    name: N | { name: N; aliases: string[] },
-    spec: O
+    name: N | { name: N; aliases: string[] } | [N, ...string[]],
+    option: O
   ): Command<
-    Options & { [K in CamelCase<N>]: { aliases: string[]; spec: O } },
+    Options & { [K in CamelCase<N>]: { aliases: string[]; option: O } },
     HandlerResult
   > {
-    const n = typeof name === 'string' ? name : name.name;
-    const aliases = typeof name === 'string' ? [] : name.aliases;
+    const { name: n, aliases } = extractAliases(name);
 
-    return new Command(
+    return new CommandImpl(
       this.handler,
-      { ...this.options, [n]: { spec, aliases } } as Options & {
-        [K in CamelCase<N>]: { aliases: string[]; spec: O };
+      { ...this.options, [n]: { option, aliases } } as Options & {
+        [K in CamelCase<N>]: { aliases: string[]; option: O };
       },
       this.metadata
     );
@@ -64,7 +69,7 @@ export class Command<
   handle<R>(
     handler: HandlerReplacement<Options, HandlerResult, R>
   ): Command<Options, R> {
-    return new Command(
+    return new CommandImpl(
       (input: HandlerInput<ParsedArgsFromOptions<Options>>) =>
         handler(input, this.handler),
       this.options,
@@ -95,12 +100,3 @@ export class Command<
     return formatter.format(this.metadata, this.options);
   }
 }
-
-type Metadata = Meta & RuntimeConfig;
-type Handler<O extends GenericOptions, R> = (
-  input: HandlerInput<ParsedArgsFromOptions<O>>
-) => R;
-type HandlerReplacement<O extends GenericOptions, R1, R2> = (
-  input: HandlerInput<ParsedArgsFromOptions<O>>,
-  current: Handler<O, R1>
-) => R2;

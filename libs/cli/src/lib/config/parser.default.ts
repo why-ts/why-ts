@@ -28,7 +28,7 @@ export class MinimistParser implements Parser {
     const parsed = minimist(argv, {
       '--': true,
       string: Object.entries(options)
-        .filter(([, v]) => v.spec[TYPE].startsWith('string')) // force minimist to parse input as string
+        .filter(([, v]) => v.option[TYPE].startsWith('string')) // force minimist to parse input as string
         .map(([k]) => k),
       alias: Object.fromEntries(
         Object.entries(options).reduce(
@@ -48,7 +48,7 @@ export class MinimistParser implements Parser {
     const errors: ArgProblem[] = [];
     for (const rawKey in options) {
       const camelKey = camelCase(rawKey) as keyof Options;
-      const option = options[rawKey].spec;
+      const option = options[rawKey].option;
       const { fallback, required } = option;
 
       let value = parsed[rawKey];

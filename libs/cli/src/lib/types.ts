@@ -5,6 +5,7 @@ import { InferOptionType, Option } from './option.types';
 import { Prompter } from './config/prompter';
 import { ErrorFormatter } from './config/error-formatter';
 import { ArgvFormatter } from './config/argv-formatter';
+import { Command } from './command.types';
 
 type CommonMeta = {
   readonly description?: string;
@@ -36,20 +37,23 @@ export type RuntimeConfig = {
 
 export type EmptyObject = NonNullable<unknown>;
 export type GenericParsedArgs = Record<string, any>;
+
+export type Aliasable<N extends string> =
+  | N
+  | { name: N; aliases: string[] }
+  | [N, ...string[]];
+
 export type AliasedOption = {
   readonly aliases: string[];
-  readonly spec: Option;
+  readonly option: Option;
 };
+
 export type GenericOptions = {
   readonly [K in string]: AliasedOption;
 };
-export type CommandOutput<Options extends GenericOptions, HandlerResult> = {
-  readonly args: ParsedArgsFromOptions<Options>;
-  readonly result: Awaited<HandlerResult>;
-};
 
 export type ParsedArgsFromOptions<O extends GenericOptions> = {
-  readonly [K in keyof O]: InferOptionType<O[K]['spec']>;
+  readonly [K in keyof O]: InferOptionType<O[K]['option']>;
 };
 
 export type Validation<T> =

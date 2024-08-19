@@ -23,7 +23,7 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
     const addOptionsSection = (required: boolean) => {
       match(
         Object.entries(options).filter(
-          ([, { spec }]) => Boolean(spec.required) === required
+          ([, { option }]) => Boolean(option.required) === required
         )
       )
         .when(
@@ -53,15 +53,12 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
       .otherwise((type) => `[${type}]`);
   }
 
-  private printOptions(
-    options: [string, { aliases: string[]; spec: Option }][],
-    width: number
-  ) {
-    const data = options.map(([key, { aliases, spec }]) => [
+  private printOptions(options: [string, AliasedOption][], width: number) {
+    const data = options.map(([key, { aliases, option }]) => [
       aliases.map((v) => `-${v}`).join(', ') + (aliases.length > 0 ? ',' : ''),
       `--${key}`,
-      this.printOptionType(spec),
-      spec.description ?? '',
+      this.printOptionType(option),
+      option.description ?? '',
     ]);
 
     return table(data, {

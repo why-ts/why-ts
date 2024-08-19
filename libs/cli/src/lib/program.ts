@@ -1,50 +1,53 @@
 import { P, match } from 'ts-pattern';
-import { Command } from './command';
+import { Command, GenericCommands } from './command.types';
 import defaultArgvFormatter from './config/argv-formatter.default';
 import defaultErrorFormatter from './config/error-formatter.default';
 import defaultLogger from './config/logger.default';
 import { type ProgramHelpFormatter } from './config/program-help-formatter';
 import defaultHelpFormatter from './config/program-help-formatter.default';
 import { CommandNotFoundError, UsageError } from './error';
-import {
-  CommandOutput,
-  EmptyObject,
-  ProgramMeta,
-  RuntimeConfig,
-} from './types';
+import { ProgramOutput, Program } from './program.types';
+import { Aliasable, EmptyObject, ProgramMeta, RuntimeConfig } from './types';
+import { extractAliases } from './util';
 
-export function program(metadata: ProgramMeta & RuntimeConfig = {}) {
-  return new Program({}, metadata);
+export function program(metadata: ProgramMeta & RuntimeConfig = {}): Program {
+  return new ProgramImpl({}, metadata);
 }
 
-class Program<Commands extends GenericCommands = EmptyObject> {
+class ProgramImpl<Commands extends GenericCommands = EmptyObject>
+  implements Program<Commands>
+{
   constructor(
-    public commands: Commands,
+    public readonly commands: Commands,
     public readonly metadata: ProgramMeta & RuntimeConfig
   ) {}
 
-  public outputs: Output<Commands> = {} as any;
-
   command<Name extends string, Cmd extends Command<any, any>>(
-    name: Name | { name: Name; aliases: string[] },
+    name: Aliasable<Name>,
     command: Cmd
   ): Program<
     Commands & {
       [N in Name]: { aliases: string[]; command: Cmd };
     }
   > {
-    const n = typeof name === 'string' ? name : name.name;
-    const aliases = typeof name === 'string' ? [] : name.aliases;
+    const { name: n, aliases } = extractAliases(name);
 
-    return new Program(
+    return new ProgramImpl(
       { ...this.commands, [n]: { aliases, command } } as Commands & {
         [N in Name]: { aliases: string[]; command: Cmd };
       },
       this.metadata
-    );
+    ) as Program<
+      Commands & {
+        [N in Name]: { aliases: string[]; command: Cmd };
+      }
+    >;
   }
 
-  async run(argv: string[], config?: RuntimeConfig): Promise<Output<Commands>> {
+  async run(
+    argv: string[],
+    config?: RuntimeConfig
+  ): Promise<ProgramOutput<Commands>> {
     const mergedConfig = { ...this.metadata, ...config };
     const {
       logger = defaultLogger,
@@ -127,7 +130,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
     argv: string[];
     command: Command<any, any>;
     config: RuntimeConfig;
-  }): Promise<Output<Commands>> {
+  }): Promise<ProgramOutput<Commands>> {
     const {
       shouldTriggerHelp = defaultShouldTriggerHelpForCommand,
       logger = defaultLogger,
@@ -143,7 +146,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
         kind: 'command',
         command: name,
         ...output,
-      } as Output<Commands>;
+      } as ProgramOutput<Commands>;
     }
   }
 }
@@ -159,27 +162,3 @@ function defaultShouldTriggerHelpForCommand(argv: string[]): boolean {
     .with([P.union('--help', '-h')], () => true)
     .otherwise(() => false);
 }
-
-type GenericCommands = {
-  readonly [K: string]: { aliases: string[]; command: Command<any, any> };
-};
-
-type Output<Commands extends GenericCommands> =
-  | ({ kind: 'command' } & UnionFromRecord<{
-      [CommandName in keyof Commands]: InferCommandOutput<
-        Commands[CommandName]['command']
-      >;
-    }>)
-  | { kind: 'help' };
-
-type InferCommandOutput<C extends Command<any, any>> = C extends Command<
-  infer O,
-  infer R
->
-  ? CommandOutput<O, R>
-  : never;
-
-type StringKeyOf<O extends Record<string, any>> = keyof O;
-type UnionFromRecord<O extends Record<string, any>> = {
-  [K in StringKeyOf<O>]: O[K] & { command: K };
-}[StringKeyOf<O>];

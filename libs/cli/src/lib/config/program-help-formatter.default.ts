@@ -1,13 +1,13 @@
 import { getBorderCharacters, table } from 'table';
-import { Command } from '../command';
 import { ProgramMeta } from '../types';
 import { getTtyWidth, maxLength } from '../util';
 import { ProgramHelpFormatter } from './program-help-formatter';
+import { AliasedCommand } from '../command.types';
 
 export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
   format(
     meta: ProgramMeta,
-    commands: Record<string, { aliases: string[]; command: Command<any, any> }>
+    commands: Record<string, AliasedCommand<any, any>>
   ) {
     const width = getTtyWidth();
 
