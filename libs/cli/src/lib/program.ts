@@ -28,7 +28,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
     public readonly metadata: ProgramMeta & RuntimeConfig
   ) {}
 
-  command<N extends string, C extends Command<GenericOptions, unknown>>(
+  command<N extends string, C extends Command<any, unknown>>(
     name: Aliasable<N>,
     command: C
   ): Program<ExtendedCommands<Commands, N, C>> {
@@ -55,10 +55,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
       errorFormatter = defaultErrorFormatter,
     } = mergedConfig;
 
-    const handleError = (
-      e: unknown,
-      command?: Command<GenericOptions, unknown>
-    ) => {
+    const handleError = (e: unknown, command?: Command<any, unknown>) => {
       if (e instanceof Error) {
         logger.error(errorFormatter.format(e));
       }
@@ -106,7 +103,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
 
   private lookupCommand(name: string): {
     name: string;
-    command?: Command<GenericOptions, unknown>;
+    command?: Command<any, unknown>;
     alias?: string;
   } {
     const command = this.commands[name];
@@ -130,7 +127,7 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
   }: {
     name: string;
     argv: string[];
-    command: Command<GenericOptions, unknown>;
+    command: Command<any, unknown>;
     config: RuntimeConfig;
   }): Promise<ProgramOutput<Commands>> {
     const {

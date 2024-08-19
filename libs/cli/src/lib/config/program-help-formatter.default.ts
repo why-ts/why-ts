@@ -7,7 +7,7 @@ import { Command } from '../command.types';
 export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
   format(
     meta: ProgramMeta,
-    commands: Record<string, Aliased<Command<GenericOptions, unknown>>>
+    commands: Record<string, Aliased<Command<any, unknown>>>
   ) {
     const width = getTtyWidth();
 
