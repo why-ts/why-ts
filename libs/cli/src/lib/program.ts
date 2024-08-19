@@ -6,7 +6,7 @@ import defaultLogger from './config/logger.default';
 import { type ProgramHelpFormatter } from './config/program-help-formatter';
 import defaultHelpFormatter from './config/program-help-formatter.default';
 import { CommandNotFoundError, UsageError } from './error';
-import { ProgramOutput, Program } from './program.types';
+import { ExtendedCommands, Program, ProgramOutput } from './program.types';
 import { Aliasable, EmptyObject, ProgramMeta, RuntimeConfig } from './types';
 import { extractAliases } from './util';
 
@@ -22,26 +22,19 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
     public readonly metadata: ProgramMeta & RuntimeConfig
   ) {}
 
-  command<Name extends string, Cmd extends Command<any, any>>(
-    name: Aliasable<Name>,
-    command: Cmd
-  ): Program<
-    Commands & {
-      [N in Name]: { aliases: string[]; command: Cmd };
-    }
-  > {
+  command<N extends string, C extends Command<any, any>>(
+    name: Aliasable<N>,
+    command: C
+  ): Program<ExtendedCommands<Commands, N, C>> {
     const { name: n, aliases } = extractAliases(name);
 
     return new ProgramImpl(
-      { ...this.commands, [n]: { aliases, command } } as Commands & {
-        [N in Name]: { aliases: string[]; command: Cmd };
-      },
+      {
+        ...this.commands,
+        [n]: { aliases, value: command },
+      } as ExtendedCommands<Commands, N, C>,
       this.metadata
-    ) as Program<
-      Commands & {
-        [N in Name]: { aliases: string[]; command: Cmd };
-      }
-    >;
+    );
   }
 
   async run(
@@ -108,14 +101,14 @@ class ProgramImpl<Commands extends GenericCommands = EmptyObject>
     alias?: string;
   } {
     const command = this.commands[name];
-    if (command) return { name, command: command.command };
+    if (command) return { name, command: command.value };
 
     const aliased = Object.entries(this.commands).find(([, v]) =>
       v.aliases.includes(name)
     );
 
     if (aliased)
-      return { name: aliased[0], command: aliased[1].command, alias: name };
+      return { name: aliased[0], command: aliased[1].value, alias: name };
 
     return { name };
   }

@@ -1,13 +1,13 @@
 import { getBorderCharacters, table } from 'table';
-import { ProgramMeta } from '../types';
+import { Aliased, ProgramMeta } from '../types';
 import { getTtyWidth, maxLength } from '../util';
 import { ProgramHelpFormatter } from './program-help-formatter';
-import { AliasedCommand } from '../command.types';
+import { Command } from '../command.types';
 
 export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
   format(
     meta: ProgramMeta,
-    commands: Record<string, AliasedCommand<any, any>>
+    commands: Record<string, Aliased<Command<any, any>>>
   ) {
     const width = getTtyWidth();
 
@@ -20,7 +20,7 @@ export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
       `Available Commands:`,
       '',
       table(
-        Object.entries(commands).map(([key, { aliases, command }]) => [
+        Object.entries(commands).map(([key, { aliases, value: command }]) => [
           [key, ...aliases].join(', '),
           command.metadata.description ?? '',
         ]),

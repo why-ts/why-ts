@@ -2,11 +2,11 @@ import { getBorderCharacters, table } from 'table';
 import { match } from 'ts-pattern';
 import { TYPE } from '../option.types';
 import type { Option, OptionChoicesVariant } from '../option.types';
-import { AliasedOption, CommandMeta } from '../types';
+import { Aliased, CommandMeta } from '../types';
 import { getTtyWidth, maxLength } from '../util';
 import { CommandHelpFormatter } from './command-help-formatter';
 
-type Options = Record<string, AliasedOption>;
+type Options = Record<string, Aliased<Option>>;
 
 export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
   format(meta: CommandMeta, options: Options): string {
@@ -23,7 +23,7 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
     const addOptionsSection = (required: boolean) => {
       match(
         Object.entries(options).filter(
-          ([, { option }]) => Boolean(option.required) === required
+          ([, { value }]) => Boolean(value.required) === required
         )
       )
         .when(
@@ -53,8 +53,8 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
       .otherwise((type) => `[${type}]`);
   }
 
-  private printOptions(options: [string, AliasedOption][], width: number) {
-    const data = options.map(([key, { aliases, option }]) => [
+  private printOptions(options: [string, Aliased<Option>][], width: number) {
+    const data = options.map(([key, { aliases, value: option }]) => [
       aliases.map((v) => `-${v}`).join(', ') + (aliases.length > 0 ? ',' : ''),
       `--${key}`,
       this.printOptionType(option),

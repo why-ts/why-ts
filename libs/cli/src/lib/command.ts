@@ -1,10 +1,10 @@
-import { CamelCase } from 'type-fest';
 import {
   Command,
+  CommandOutput,
+  ExtendedOptions,
   Handler,
   HandlerReplacement,
   Metadata,
-  CommandOutput,
 } from './command.types';
 import { type CommandHelpFormatter } from './config/command-help-formatter';
 import defaultHelpFormatter from './config/command-help-formatter.default';
@@ -14,6 +14,7 @@ import defaultParser from './config/parser.default';
 import defaultPrompter from './config/prompter.default';
 import { type Option } from './option.types';
 import {
+  Aliasable,
   EmptyObject,
   GenericOptions,
   HandlerInput,
@@ -49,19 +50,17 @@ class CommandImpl<
   }
 
   option<N extends string, O extends Option>(
-    name: N | { name: N; aliases: string[] } | [N, ...string[]],
+    name: Aliasable<N>,
     option: O
-  ): Command<
-    Options & { [K in CamelCase<N>]: { aliases: string[]; option: O } },
-    HandlerResult
-  > {
+  ): Command<ExtendedOptions<Options, N, O>, HandlerResult> {
     const { name: n, aliases } = extractAliases(name);
 
     return new CommandImpl(
       this.handler,
-      { ...this.options, [n]: { option, aliases } } as Options & {
-        [K in CamelCase<N>]: { aliases: string[]; option: O };
-      },
+      {
+        ...this.options,
+        [n]: { aliases, value: option },
+      } as ExtendedOptions<Options, N, O>,
       this.metadata
     );
   }

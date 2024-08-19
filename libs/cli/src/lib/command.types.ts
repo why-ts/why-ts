@@ -3,6 +3,7 @@ import { type CommandHelpFormatter } from './config/command-help-formatter';
 import { type Option } from './option.types';
 import {
   Aliasable,
+  Aliased,
   EmptyObject,
   GenericOptions,
   HandlerInput,
@@ -25,10 +26,7 @@ export interface Command<
   option<N extends string, O extends Option>(
     name: Aliasable<N>,
     option: O
-  ): Command<
-    Options & { [K in CamelCase<N>]: { aliases: string[]; option: O } },
-    HandlerResult
-  >;
+  ): Command<Options & { [K in CamelCase<N>]: Aliased<O> }, HandlerResult>;
 
   handle<R>(
     handler: HandlerReplacement<Options, HandlerResult, R>
@@ -51,14 +49,15 @@ export type HandlerReplacement<O extends GenericOptions, R1, R2> = (
   current: Handler<O, R1>
 ) => R2;
 
-export type AliasedCommand<O extends GenericOptions, H> = {
-  readonly aliases: string[];
-  readonly command: Command<O, H>;
+export type GenericCommands = {
+  readonly [K: string]: Aliased<Command<any, any>>;
 };
 
-export type GenericCommands = {
-  readonly [K: string]: AliasedCommand<any, any>;
-};
+export type ExtendedOptions<
+  Options extends GenericOptions,
+  N extends string,
+  O extends Option
+> = Options & { [_ in CamelCase<N>]: Aliased<O> };
 
 export type CommandOutput<Options extends GenericOptions, HandlerResult> = {
   readonly args: ParsedArgsFromOptions<Options>;

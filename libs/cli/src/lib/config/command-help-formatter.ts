@@ -1,6 +1,7 @@
-import { AliasedOption, CommandMeta } from '../types';
+import { Aliased, CommandMeta } from '../types';
+import { Option } from '../option.types';
 
-type Options = Record<string, AliasedOption>;
+type Options = Record<string, Aliased<Option>>;
 
 export interface CommandHelpFormatter {
   format(meta: CommandMeta, options: Options): string;

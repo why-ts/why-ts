@@ -1,9 +1,9 @@
-import { AliasedCommand } from '../command.types';
-import { ProgramMeta } from '../types';
+import { Command } from '../command.types';
+import { Aliased, ProgramMeta } from '../types';
 
 export interface ProgramHelpFormatter {
   format(
     meta: ProgramMeta,
-    commands: Record<string, AliasedCommand<any, any>>
+    commands: Record<string, Aliased<Command<any, any>>>
   ): string;
 }

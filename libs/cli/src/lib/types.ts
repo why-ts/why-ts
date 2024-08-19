@@ -5,7 +5,6 @@ import { InferOptionType, Option } from './option.types';
 import { Prompter } from './config/prompter';
 import { ErrorFormatter } from './config/error-formatter';
 import { ArgvFormatter } from './config/argv-formatter';
-import { Command } from './command.types';
 
 type CommonMeta = {
   readonly description?: string;
@@ -43,17 +42,17 @@ export type Aliasable<N extends string> =
   | { name: N; aliases: string[] }
   | [N, ...string[]];
 
-export type AliasedOption = {
+export type Aliased<T> = {
   readonly aliases: string[];
-  readonly option: Option;
+  readonly value: T;
 };
 
 export type GenericOptions = {
-  readonly [K in string]: AliasedOption;
+  readonly [K in string]: Aliased<Option>;
 };
 
 export type ParsedArgsFromOptions<O extends GenericOptions> = {
-  readonly [K in keyof O]: InferOptionType<O[K]['option']>;
+  readonly [K in keyof O]: InferOptionType<O[K]['value']>;
 };
 
 export type Validation<T> =
