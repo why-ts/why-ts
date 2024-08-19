@@ -39,6 +39,19 @@ describe('Program', () => {
     });
   });
 
+  it('should run a aliased command', async () => {
+    expect(
+      await slient
+        .command({ name: 'c1', aliases: ['cmd1'] }, c1)
+        .run(['cmd1', '--foo', 'bar'])
+    ).toEqual({
+      kind: 'command',
+      command: 'c1',
+      args: expect.objectContaining({ foo: 'bar' }),
+      result: 'bar',
+    });
+  });
+
   it('should throw if no args provided', async () => {
     expect(p.run([])).rejects.toThrow('No command provided');
   });
@@ -61,6 +74,9 @@ describe('Program', () => {
       command().handle(() => 'c2')
     );
 
+    expect(base).not.toBe(p1);
+    expect(base).not.toBe(p2);
+    expect(p1).not.toBe(p2);
     await expect(p1.run(['c2'])).rejects.toThrow('Command "c2" not found');
     await expect(p2.run(['c1'])).rejects.toThrow('Command "c1" not found');
   });

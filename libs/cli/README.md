@@ -100,9 +100,7 @@ The handler function will receive the following arguments:
 Since Commands are immutable, it is possible redefine/override a handler and invoke the "parent" one.  
 This is usually useful for implementing options and logic that are shared by multiple commands.
 
-#### Examples
-
-Basic:
+##### Examples
 
 ```ts
 const command = command().handle({args, argv}) => {
@@ -123,9 +121,9 @@ const common = command()
 
 const foo = common
   .options('foo', o.string())
-  .handle(({args}, _super) => {
-    await _super(); // change directory logic is implemented in base command
-    console.log(args.foo);
+  .handle((params, _super) => {
+    await _super(params); // change directory logic is implemented in base command
+    console.log(params.args.foo);
   });
 ```
 
@@ -138,11 +136,35 @@ command()
   .handle(() => console.log('bar'));
 ```
 
+### Command Alias
+
+```ts
+import { program, command, option as o } from '@why-ts/cli';
+const output = await program()
+  .command(
+    {name:'foo', aliases:['f']},
+    command().handle(() => console.log('Running foo'))
+  )
+  .run(process.argv.slice(2));
+```
+
+```bash
+> node index.js foo
+
+Running foo
+```
+
+```bash
+> node index.js f
+
+Running foo
+```
+
 ### Command Metadata
 
 Metadata for a command (e.g. description) can be specified in the `command()` constructor call, or overridden via the `.meta()` call
 
-#### Examples
+##### Examples
 
 ```ts
 const c1 = command({ description: 'Foo' });
@@ -173,23 +195,23 @@ command()
   .handle(({ args }) => console.log(args)); // type of `args`: {foo?:string, bar?:number, baz?:boolean}
 ```
 
-#### Examples
+##### Examples
 
-Basic usage
+Basic usage:
 
 ```bash
 > ts-node index.ts --foo=orange --bar=7 --baz
 # {foo: 'orange', bar: 7, baz: true}
 ```
 
-Boolean fields will produce a false value for `0`, `n` & `false` (TODO: allow customisation)
+Boolean fields will produce a false value for `0`, `n` & `false`:
 
 ```bash
 > ts-node index.ts --baz=false
 # {baz: false}
 ```
 
-Boolean false values can also be specified with the `--no-<name>` option (TODO: allow disabling this feature)
+Boolean false values can also be specified with the `--no-<name>` option:
 
 ```bash
 > ts-node index.ts --no-baz
@@ -206,9 +228,7 @@ command()
   .handle(({ args }) => console.log(args)); // type of `args`: {foo?:string}
 ```
 
-#### Examples
-
-Basic usage
+##### Examples
 
 ```bash
 > ts-node index.ts -f=orange
@@ -229,9 +249,7 @@ command()
   .handle(({ args }) => console.log(args)); // type of `args`: {foo:string, bar:string, baz:boolean}
 ```
 
-(TODO: auto prompt for missing options if `{required: 'prompt'}`)
-
-#### Examples
+##### Examples
 
 ```bash
 > ts-node index.ts --bar=7 --baz
@@ -285,9 +303,7 @@ command()
 By default, enviroment variables will be read from `process.env` and basic transformation is applied.
 Provide a custom `Env` implementation to customize the behavior. (See more in Configuration section)
 
-#### Examples
-
-Basic
+##### Examples
 
 ```bash
 > MY_FOO=apple MY_BAR=42 ts-node index.ts
@@ -296,7 +312,7 @@ Basic
 
 ### Custom Fallback Value
 
-An option can be configured have a fallback.
+An option can be configured to have a fallback.
 
 (See "Option Value Flow" section for the order of execution)
 
@@ -324,9 +340,7 @@ command()
   .handle(({ args }) => console.log(args));
 ```
 
-#### Examples
-
-Basic
+##### Examples
 
 ```bash
 > ts-node index.ts --bar=5
@@ -401,8 +415,9 @@ Controls how the help text is formatted.
 ## TODO
 
 - More data types (e.g. Date)
-- `--` handling
+- allow customisation of falsy values
 - Shell completion
+- Auto prompt for missing options if `{required: 'prompt'}`
 - Locale
 - Option relationships (is it possible to represent them at type level?)
   - dependencies (y is required if x is defined)

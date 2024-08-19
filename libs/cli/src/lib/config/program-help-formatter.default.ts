@@ -5,7 +5,10 @@ import { getTtyWidth, maxLength } from '../util';
 import { ProgramHelpFormatter } from './program-help-formatter';
 
 export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
-  format(meta: ProgramMeta, commands: Record<string, Command<any, any>>) {
+  format(
+    meta: ProgramMeta,
+    commands: Record<string, { aliases: string[]; command: Command<any, any> }>
+  ) {
     const width = getTtyWidth();
 
     return [
@@ -17,14 +20,18 @@ export class DefaultProgramHelpFormatter implements ProgramHelpFormatter {
       `Available Commands:`,
       '',
       table(
-        Object.entries(commands).map(([key, command]) => [
-          key,
+        Object.entries(commands).map(([key, { aliases, command }]) => [
+          [key, ...aliases].join(', '),
           command.metadata.description ?? '',
         ]),
         {
           border: getBorderCharacters('void'),
           columns: (() => {
-            const width1 = maxLength(Object.keys(commands));
+            const width1 = maxLength(
+              Object.entries(commands).map(([key, { aliases }]) =>
+                [key, ...aliases].join(', ')
+              )
+            );
             return [
               { paddingLeft: 2, width: width1 },
               { paddingLeft: 4, width: width - 8 - width1, wrapWord: true },

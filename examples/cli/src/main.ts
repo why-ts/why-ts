@@ -8,9 +8,9 @@ import prompTestCommand from './prompt-test/command';
   })
     .command('prompt-test', prompTestCommand)
     .command(
-      'error',
+      { name: 'error', aliases: ['err', 'e'] },
       command()
-        .option('message', o.string())
+        .option({ name: 'message', aliases: ['m'] }, o.string())
         .handle(({ args }) => {
           throw new Error(args.message ?? 'An error occurred\n at main.ts:1:1');
         })
@@ -21,28 +21,28 @@ import prompTestCommand from './prompt-test/command';
         description: 'Generates random data based on specified parameters.',
       })
         .option(
-          'type',
+          { name: 'type', aliases: ['t'] },
           o.choice(['int', 'float', 'string', 'list', 'dict'], {
             required: true,
             description: 'Specifies the type of data to generate.',
           })
         )
         .option(
-          'range',
+          { name: 'range', aliases: ['r'] },
           o.number({
             description:
               'Specifies the range of values (for integers and floats).',
           })
         )
         .option(
-          'length',
+          { name: 'length', aliases: ['l'] },
           o.number({
             description:
               'Specifies the length of the generated data (for strings and lists).',
           })
         )
         .option(
-          'count',
+          { name: 'count', aliases: ['c'] },
           o.number({
             description:
               'Specifies the number of items to generate (for lists and dicts).',

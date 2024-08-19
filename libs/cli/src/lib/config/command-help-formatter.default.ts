@@ -53,8 +53,12 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
       .otherwise((type) => `[${type}]`);
   }
 
-  private printOptions(options: [string, { spec: Option }][], width: number) {
-    const data = options.map(([key, { spec }]) => [
+  private printOptions(
+    options: [string, { aliases: string[]; spec: Option }][],
+    width: number
+  ) {
+    const data = options.map(([key, { aliases, spec }]) => [
+      aliases.map((v) => `-${v}`).join(', ') + (aliases.length > 0 ? ',' : ''),
       `--${key}`,
       this.printOptionType(spec),
       spec.description ?? '',
@@ -63,14 +67,18 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
     return table(data, {
       border: getBorderCharacters('void'),
       columns: (() => {
-        const width1 = maxLength(data.map(([v]) => v));
-        const width2 = Math.min(24, maxLength(data.map(([, v]) => v)));
+        const widths = [
+          maxLength(data.map(([v]) => v)),
+          maxLength(data.map(([, v]) => v)),
+          Math.min(24, maxLength(data.map(([, , v]) => v))),
+        ];
         return [
-          { paddingLeft: 2, width: width1 },
-          { paddingLeft: 4, width: width2, wrapWord: true },
+          { paddingLeft: 2, paddingRight: 0, width: widths[0] },
+          { width: widths[1] },
+          { width: widths[2], wrapWord: true },
           {
             paddingLeft: 4,
-            width: width - width1 - width2 - 16,
+            width: width - widths.reduce((s, v) => s + v + 2, 0) - 6,
             wrapWord: true,
           },
         ];

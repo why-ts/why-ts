@@ -26,16 +26,19 @@ class Program<Commands extends GenericCommands = EmptyObject> {
   public outputs: Output<Commands> = {} as any;
 
   command<Name extends string, Cmd extends Command<any, any>>(
-    name: Name,
+    name: Name | { name: Name; aliases: string[] },
     command: Cmd
   ): Program<
     Commands & {
-      [N in Name]: Cmd;
+      [N in Name]: { aliases: string[]; command: Cmd };
     }
   > {
+    const n = typeof name === 'string' ? name : name.name;
+    const aliases = typeof name === 'string' ? [] : name.aliases;
+
     return new Program(
-      { ...this.commands, [name]: command } as Commands & {
-        [N in Name]: Cmd;
+      { ...this.commands, [n]: { aliases, command } } as Commands & {
+        [N in Name]: { aliases: string[]; command: Cmd };
       },
       this.metadata
     );
@@ -50,23 +53,36 @@ class Program<Commands extends GenericCommands = EmptyObject> {
       errorFormatter = defaultErrorFormatter,
     } = mergedConfig;
 
-    const name = argv[0];
-    const command = this.commands[name];
+    const handleError = (e: unknown, command?: Command<any, any>) => {
+      if (e instanceof Error) {
+        logger.error(errorFormatter.format(e));
+      }
+
+      if (e instanceof UsageError) {
+        logger.log(command ? command.help() : this.help());
+      }
+      return e;
+    };
 
     try {
       if (argv.length === 0)
-        throw new UsageError('COMMAND_MISSING', 'No command provided');
+        throw handleError(
+          new UsageError('COMMAND_MISSING', 'No command provided')
+        );
 
       logger.error(argvFormatter.format(argv) + '\n');
 
       if (shouldTriggerHelp(argv)) {
         // show global help
-        logger.error(this.help());
+        logger.log(this.help());
         return { kind: 'help' };
       } else {
+        const { name, command } = this.lookupCommand(argv[0]);
+
         if (!command) {
-          throw new CommandNotFoundError(name);
+          throw new CommandNotFoundError(argv[0]);
         }
+
         return await this.runCommand({
           name,
           argv: argv.slice(1),
@@ -75,20 +91,30 @@ class Program<Commands extends GenericCommands = EmptyObject> {
         });
       }
     } catch (e) {
-      if (e instanceof Error) {
-        logger.error(errorFormatter.format(e));
-      }
-
-      if (e instanceof UsageError) {
-        if (command) logger.error(command.help());
-        else logger.error(this.help());
-      }
-      throw e;
+      throw handleError(e);
     }
   }
 
   help(formatter: ProgramHelpFormatter = defaultHelpFormatter) {
     return formatter.format(this.metadata, this.commands);
+  }
+
+  private lookupCommand(name: string): {
+    name: string;
+    command?: Command<any, any>;
+    alias?: string;
+  } {
+    const command = this.commands[name];
+    if (command) return { name, command: command.command };
+
+    const aliased = Object.entries(this.commands).find(([, v]) =>
+      v.aliases.includes(name)
+    );
+
+    if (aliased)
+      return { name: aliased[0], command: aliased[1].command, alias: name };
+
+    return { name };
   }
 
   private async runCommand({
@@ -109,7 +135,7 @@ class Program<Commands extends GenericCommands = EmptyObject> {
 
     if (shouldTriggerHelp(argv)) {
       // show command help
-      logger.error(command.help());
+      logger.log(command.help());
       return { kind: 'help' };
     } else {
       const output = await command.run(argv, config);
@@ -134,12 +160,14 @@ function defaultShouldTriggerHelpForCommand(argv: string[]): boolean {
     .otherwise(() => false);
 }
 
-type GenericCommands = { readonly [K: string]: Command<any, any> };
+type GenericCommands = {
+  readonly [K: string]: { aliases: string[]; command: Command<any, any> };
+};
 
 type Output<Commands extends GenericCommands> =
   | ({ kind: 'command' } & UnionFromRecord<{
       [CommandName in keyof Commands]: InferCommandOutput<
-        Commands[CommandName]
+        Commands[CommandName]['command']
       >;
     }>)
   | { kind: 'help' };

@@ -1,6 +1,8 @@
 {
   "name": "@why-ts/irpc",
   "version": "0.0.1",
+  "repository": "https://github.com/why-ts/why-ts",
+  "homepage": "https://github.com/why-ts/why-ts",
   "dependencies": {
     "tslib": "^2.3.0",
     "@why-ts/core": "0.0.1",
