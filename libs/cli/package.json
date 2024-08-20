@@ -4,7 +4,7 @@
   "repository": "https://github.com/why-ts/why-ts",
   "homepage": "https://github.com/why-ts/why-ts",
   "dependencies": {
-    "change-case": "^4.1.2",
+    "change-case": "^5.4.4",
     "kleur": "^4.1.5",
     "minimist": "^1.2.8",
     "prompts": "^2.4.2",
