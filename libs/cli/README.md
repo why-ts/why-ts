@@ -103,10 +103,10 @@ This is usually useful for implementing options and logic that are shared by mul
 ##### Examples
 
 ```ts
-const command = command().handle({args, argv}) => {
+const command = command().handle(({args, argv}) => {
   console.log(args); // typed args
   console.log(argv); // raw argv string array
-}
+})
 ```
 
 Share options and logic between multiple commands:
@@ -114,7 +114,7 @@ Share options and logic between multiple commands:
 ```ts
 const common = command()
   .option('working-directory', o.string())
-  .handle({args} => {
+  .handle(({args}) => {
     if(args.workingDirectory)
       process.chdir(args.workingDirectory);
 });
