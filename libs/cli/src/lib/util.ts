@@ -1,5 +1,9 @@
 import { Aliasable } from './types';
 
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
 export function maxLength(arr: string[]): number {
   return arr.reduce((acc, cur) => (cur.length > acc ? cur.length : acc), 0);
 }
@@ -13,13 +17,13 @@ export function getTtyWidth(): number {
 }
 
 export function extractAliases<N extends string>(
-  name: Aliasable<N>
+  name: Aliasable<N>,
 ): { name: N; aliases: string[] } {
   return typeof name === 'string'
     ? { name, aliases: [] }
     : Array.isArray(name)
-    ? { name: name[0], aliases: name.slice(1) }
-    : name;
+      ? { name: name[0], aliases: name.slice(1) }
+      : name;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

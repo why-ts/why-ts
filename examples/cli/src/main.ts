@@ -9,8 +9,11 @@ import prompTestCommand from './prompt-test/command';
     .command('prompt-test', prompTestCommand)
     .command(
       ['error', 'err', 'e'],
-      command()
-        .option(['message', 'm'], o.string())
+      command({ description: 'Throws an error.' })
+        .option(
+          ['message', 'm'],
+          o.string({ description: 'The error message.' }),
+        )
         .handle(({ args }) => {
           throw new Error(args.message ?? 'An error occurred\n at main.ts:1:1');
         }),
@@ -29,7 +32,7 @@ import prompTestCommand from './prompt-test/command';
           }),
         )
         .option(
-          ['range', 'r'],
+          ['range', 'r', 'R'],
           o.number({
             description:
               'Specifies the range of values (for integers and floats).',
@@ -61,7 +64,10 @@ import prompTestCommand from './prompt-test/command';
       command({ description: 'Simulates a coin flip.' })
         .option(
           'bias',
-          o.number({ description: 'Sets a bias for the coin (default: 0.5).' }),
+          o.number({
+            description: 'Sets a bias for the coin',
+            fallback: () => 0.5,
+          }),
         )
         .option(
           'count',
