@@ -23,8 +23,8 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
     const addOptionsSection = (required: boolean) => {
       match(
         Object.entries(options).filter(
-          ([, { value }]) => Boolean(value.required) === required
-        )
+          ([, { value }]) => Boolean(value.required) === required,
+        ),
       )
         .when(
           (v) => v.length,
@@ -32,8 +32,8 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
             parts.push(
               `${required ? 'Required' : 'Optional'} Flags:`,
               '',
-              this.printOptions(o, width)
-            )
+              this.printOptions(o, width),
+            ),
         )
         .otherwise(() => undefined);
     };
@@ -48,36 +48,43 @@ export class DefaultCommandHelpFormatter implements CommandHelpFormatter {
       .with(
         'choice',
         () =>
-          `[choices: ${(option as OptionChoicesVariant).choices.join(', ')}]`
+          `[choices: ${(option as OptionChoicesVariant).choices.map((v) => `"${v}"`).join(', ')}]`,
       )
       .otherwise((type) => `[${type}]`);
+  }
+
+  private printOptionDefaultValue(option: Option) {
+    return option.fallback ? `(default: ${option.fallback()})` : '';
   }
 
   private printOptions(options: [string, Aliased<Option>][], width: number) {
     const data = options.map(([key, { aliases, value: option }]) => [
       aliases.map((v) => `-${v}`).join(', ') + (aliases.length > 0 ? ',' : ''),
       `--${key}`,
-      this.printOptionType(option),
+      this.printOptionDefaultValue(option),
       option.description ?? '',
+      this.printOptionType(option),
     ]);
 
     return table(data, {
       border: getBorderCharacters('void'),
       columns: (() => {
         const widths = [
-          maxLength(data.map(([v]) => v)),
-          maxLength(data.map(([, v]) => v)),
-          Math.min(24, maxLength(data.map(([, , v]) => v))),
+          maxLength(data.map(([v]) => v)), // alias
+          maxLength(data.map(([, v]) => v)), // flag
+          maxLength(data.map(([, , v]) => v)), // default
+          Math.min(width - 60, maxLength(data.map(([, , , , v]) => v))), // type
         ];
         return [
-          { paddingLeft: 2, paddingRight: 0, width: widths[0] },
-          { width: widths[1] },
-          { width: widths[2], wrapWord: true },
+          { paddingLeft: 2, paddingRight: 0, width: widths[0] }, // alias
+          { width: widths[1] }, // flag
+          { paddingLeft: 0, paddingRight: 0, width: widths[2] }, // default
           {
             paddingLeft: 4,
             width: width - widths.reduce((s, v) => s + v + 2, 0) - 6,
             wrapWord: true,
-          },
+          }, // description
+          { width: widths[3], wrapWord: true, alignment: 'right' }, // type
         ];
       })(),
       drawHorizontalLine: () => false,
