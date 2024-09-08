@@ -23,12 +23,15 @@ export class MinimistParser implements Parser {
   async parse<Options extends GenericOptions = EmptyObject>(
     options: Options,
     argv: string[],
-    env: Env
+    env: Env,
   ): Promise<ParserReturn<Options>> {
     const parsed = minimist(argv, {
       '--': true,
       string: Object.entries(options)
-        .filter(([, v]) => v.value[TYPE].startsWith('string')) // force minimist to parse input as string
+        .filter(
+          ([, v]) =>
+            v.value[TYPE].startsWith('string') || v.value[TYPE] === 'dict',
+        ) // force minimist to parse input as string
         .map(([k]) => k),
       alias: Object.fromEntries(
         Object.entries(options).reduce(
@@ -36,8 +39,8 @@ export class MinimistParser implements Parser {
             ...acc,
             ...aliases.map<[string, string]>((a) => [a, k]),
           ],
-          [] as [string, string][]
-        )
+          [] as [string, string][],
+        ),
       ),
     });
 
@@ -73,12 +76,12 @@ export class MinimistParser implements Parser {
       if (value !== undefined) {
         match(this.validate(value, option))
           .with({ success: false }, ({ error }) =>
-            errors.push({ option: rawKey, kind: 'validation', message: error })
+            errors.push({ option: rawKey, kind: 'validation', message: error }),
           )
           .with(
             { success: true },
             ({ value }) =>
-              (args[camelKey] = value as ParserReturn<Options>[keyof Options])
+              (args[camelKey] = value as ParserReturn<Options>[keyof Options]),
           )
           .exhaustive();
       }
@@ -87,29 +90,29 @@ export class MinimistParser implements Parser {
       if (value !== undefined && option.validate) {
         match(
           (option.validate as (value: unknown) => SimpleValidation<unknown>)(
-            value
-          )
+            value,
+          ),
         )
           .with(true, noop)
           .with(false, () =>
             errors.push({
               option: rawKey,
               kind: 'custom-validation',
-            })
+            }),
           )
           .with(P.string, (e) =>
             errors.push({
               option: rawKey,
               kind: 'custom-validation',
               message: e,
-            })
+            }),
           )
           .with({ success: false }, ({ error }) =>
             errors.push({
               option: rawKey,
               kind: 'custom-validation',
               message: error,
-            })
+            }),
           )
           .with({ success: true }, (o) => (value = o.value)) // maybe-transformed value
           .exhaustive();
@@ -149,8 +152,8 @@ export class MinimistParser implements Parser {
         match(v.filter(isNaN))
           .with([], () => ok(value))
           .otherwise((invalid) =>
-            fail(`must be an number but got ${this.printValue(invalid)}`)
-          )
+            fail(`must be an number but got ${this.printValue(invalid)}`),
+          ),
       )
 
       .with(['date', P.string.or(P.number)], ([, v]) => {
@@ -173,14 +176,14 @@ export class MinimistParser implements Parser {
           .otherwise((invalid) =>
             fail(
               `must be an array of dates but got ${this.printValue(
-                invalid.map(([x]) => x)
-              )}`
-            )
+                invalid.map(([x]) => x),
+              )}`,
+            ),
           );
       })
 
       .with(['boolean', P.string], ([, v]) =>
-        ok(!FALSY.includes(v.toLowerCase()))
+        ok(!FALSY.includes(v.toLowerCase())),
       )
       .with(['boolean', P.number], ([, v]) => ok(v !== 0))
       .with(['boolean', P.boolean], ([, v]) => ok(v))
@@ -190,13 +193,36 @@ export class MinimistParser implements Parser {
       .with(['strings', P.string], ([, v]) => ok([v]))
       .with(['strings', P.array()], ([, v]) => ok(v.map(String)))
 
+      .with(['dict', P.string], ([, v]) => {
+        const map = new Map<string, string>();
+        const parsed = this.parseDictEntry(v);
+        return parsed === undefined
+          ? fail(
+              `must be a key-value pair in the form key=value, but got ${this.printValue(v)}`,
+            )
+          : (map.set(parsed[0], parsed[1]), ok(map));
+      })
+      .with(['dict', P.array(P.string)], ([, v]) => {
+        const map = new Map<string, string>();
+        for (const e of v) {
+          const parsed = this.parseDictEntry(e);
+          if (parsed === undefined) {
+            return fail(
+              `must be a key-value pair in the form key=value, but got ${this.printValue(e)}`,
+            );
+          }
+          map.set(parsed[0], parsed[1]);
+        }
+        return ok(map);
+      })
+
       .with(['choice', P.string], ([, v]) => {
         const { choices } = option as OptionChoicesVariant;
         return choices.includes(v)
           ? ok(v)
           : fail(
               `must be one of [${choices.join(', ')}] ` +
-                `but got ${this.printValue(v)}`
+                `but got ${this.printValue(v)}`,
             );
       })
       .with(
@@ -204,14 +230,14 @@ export class MinimistParser implements Parser {
         ([, v]) =>
           fail(
             `only accepts a single value but is specified multiple times with values: ` +
-              this.printValue(v)
-          )
+              this.printValue(v),
+          ),
       )
       .otherwise(([e, v]) => {
         const expected = match(e)
           .with(
             P.union('numbers', 'dates', 'strings'),
-            () => `an array of ${e}`
+            () => `an array of ${e}`,
           )
           .otherwise((e) => `a ${e}`);
 
@@ -231,6 +257,12 @@ export class MinimistParser implements Parser {
     return Array.isArray(v)
       ? `[${v.map(printSingle).join(', ')}]`
       : printSingle(v);
+  }
+
+  private parseDictEntry(val: string): [string, string] | undefined {
+    return match(val.indexOf('='))
+      .with(-1, () => undefined)
+      .otherwise((i) => [val.substring(0, i), val.substring(i + 1)]);
   }
 }
 

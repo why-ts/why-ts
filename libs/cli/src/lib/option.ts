@@ -1,9 +1,11 @@
 import {
+  Dict,
   OptionBase,
   OptionBooleanVariant,
   OptionChoicesVariant,
   OptionDateArrayVariant,
   OptionDateVariant,
+  OptionDictVariant,
   OptionNumberArrayVariant,
   OptionNumberVariant,
   OptionStringArrayVariant,
@@ -94,6 +96,18 @@ export function boolean<O extends OptionBase>(
     [TYPE]: 'boolean',
     ...options,
   } as O & OptionBooleanVariant;
+}
+
+export function dict<O extends OptionBase>(
+  options?: O & {
+    fallback?: NoInfer<() => Dict | undefined>;
+    validate?: NoInfer<(value: Dict) => SimpleValidation<Dict>>;
+  },
+): O & OptionDictVariant {
+  return {
+    [TYPE]: 'dict',
+    ...options,
+  } as O & OptionDictVariant;
 }
 
 // TODO: support generating choice via async function (`choice: () => Promise<readonly T[]>`)

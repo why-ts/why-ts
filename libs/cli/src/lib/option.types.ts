@@ -15,7 +15,7 @@ export type Option = OptionBase & OptionVariant;
 
 export type InferRequiredOptionValueType<
   O extends Option,
-  R extends boolean | undefined
+  R extends boolean | undefined,
 > = R extends true
   ? InferOptionValueType<O>
   : InferOptionValueType<O> | undefined;
@@ -25,25 +25,29 @@ export type InferOptionValueType<O extends Option> = O extends {
 }
   ? number
   : O extends { [TYPE]: 'numbers' }
-  ? number[]
-  : O extends { [TYPE]: 'date' }
-  ? Date
-  : O extends { [TYPE]: 'dates' }
-  ? Date[]
-  : O extends { [TYPE]: 'boolean' }
-  ? boolean
-  : O extends { [TYPE]: 'strings' }
-  ? string[]
-  : O extends { [TYPE]: 'choice'; choices: infer C }
-  ? C extends readonly string[]
-    ? C[number]
-    : never
-  : string;
+    ? number[]
+    : O extends { [TYPE]: 'date' }
+      ? Date
+      : O extends { [TYPE]: 'dates' }
+        ? Date[]
+        : O extends { [TYPE]: 'boolean' }
+          ? boolean
+          : O extends { [TYPE]: 'dict' }
+            ? Dict
+            : O extends { [TYPE]: 'strings' }
+              ? string[]
+              : O extends { [TYPE]: 'choice'; choices: infer C }
+                ? C extends readonly string[]
+                  ? C[number]
+                  : never
+                : string;
 
 export type InferOptionType<O extends Option> = InferRequiredOptionValueType<
   O,
   O['required']
 >;
+
+export type Dict = Map<string, string>;
 
 export type OptionBase = {
   // readonly [TYPE]: OptionValueType;
@@ -53,6 +57,7 @@ export type OptionBase = {
 };
 export type OptionVariant =
   | OptionChoicesVariant
+  | OptionDictVariant
   | OptionStringArrayVariant
   | OptionStringVariant
   | OptionNumberArrayVariant
@@ -115,6 +120,14 @@ export type OptionBooleanVariant = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // `any` is required for func arg variance to work properly
   readonly validate?: (value: any) => SimpleValidation<boolean>;
+};
+
+export type OptionDictVariant = {
+  readonly [TYPE]: 'dict';
+  readonly fallback?: () => Dict | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // `any` is required for func arg variance to work properly
+  readonly validate?: (value: any) => SimpleValidation<Dict>;
 };
 
 export type OptionChoicesVariant<T extends string = string> = {

@@ -86,9 +86,9 @@ describe('Command', () => {
       slient
         .option('foo', o.choice(CHOICES))
         .handle(({ args }) => args.foo)
-        .run(['--foo', 'barbaz'])
+        .run(['--foo', 'barbaz']),
     ).rejects.toThrow(
-      /^--foo must be one of \[bar, baz\] but got barbaz \(string\)$/
+      /^--foo must be one of \[bar, baz\] but got barbaz \(string\)$/,
     );
   });
 
@@ -140,6 +140,40 @@ describe('Command', () => {
     expect(output.result).toBe(true);
   });
 
+  it('should parse dict', async () => {
+    const output = await slient
+      .option('foo', o.dict())
+      .handle(({ args }) => args.foo)
+      .run(['--foo=bar=baz']);
+    expect(output.result).toEqual(new Map([['bar', 'baz']]));
+  });
+
+  it('should parse dict (multiple)', async () => {
+    const output = await slient
+      .option('foo', o.dict())
+      .handle(({ args }) => args.foo)
+      .run(['--foo=bar=baz', '--foo', 'x=y']);
+    expect(output.result).toEqual(
+      new Map([
+        ['bar', 'baz'],
+        ['x', 'y'],
+      ]),
+    );
+  });
+
+  it('should parse dict (alias)', async () => {
+    const output = await slient
+      .option(['foo', 'f'], o.dict())
+      .handle(({ args }) => args.foo)
+      .run(['-f', 'bar=baz', '-f', 'x=y']);
+    expect(output.result).toEqual(
+      new Map([
+        ['bar', 'baz'],
+        ['x', 'y'],
+      ]),
+    );
+  });
+
   it('should parse single arg as number array', async () => {
     const output = await slient
       .option('foo', o.numbers())
@@ -183,9 +217,9 @@ describe('Command', () => {
       slient
         .option('foo', o.numbers())
         .handle(({ args }) => args.foo)
-        .run(['--foo', 'bar', '--foo', '42'])
+        .run(['--foo', 'bar', '--foo', '42']),
     ).rejects.toThrow(
-      /^--foo must be an array of numbers but got \[bar \(string\), 42 \(number\)\]$/
+      /^--foo must be an array of numbers but got \[bar \(string\), 42 \(number\)\]$/,
     );
   });
 
@@ -213,9 +247,9 @@ describe('Command', () => {
       slient
         .option('foo', o.dates())
         .handle(({ args }) => args.foo)
-        .run(['--foo', '1724132917000', '--foo', 'bar'])
+        .run(['--foo', '1724132917000', '--foo', 'bar']),
     ).rejects.toThrow(
-      /^--foo must be an array of dates but got \[bar \(string\)\]$/
+      /^--foo must be an array of dates but got \[bar \(string\)\]$/,
     );
   });
 
@@ -247,7 +281,7 @@ describe('Command', () => {
       slient
         .option('foo', o.string({ required: true }))
         .handle(({ args }) => args.foo)
-        .run([])
+        .run([]),
     ).rejects.toThrow(/^--foo is required$/);
   });
 
@@ -282,7 +316,7 @@ describe('Command', () => {
         o.choice(CHOICES, {
           required: true,
           fallback: () => 'bar' as const,
-        })
+        }),
       )
       .handle(({ args }) => args.foo)
       .run([]);
@@ -294,7 +328,7 @@ describe('Command', () => {
       slient
         .option('foo', o.string({ fallback: () => undefined, required: true }))
         .handle(({ args }) => args.foo)
-        .run([])
+        .run([]),
     ).rejects.toThrow(/^--foo is required$/);
   });
 
@@ -362,9 +396,9 @@ describe('Command', () => {
       slient
         .option('foo', o.string())
         .handle(({ args }) => args.foo)
-        .run(['--foo=bar', '--foo=baz'])
+        .run(['--foo=bar', '--foo=baz']),
     ).rejects.toThrow(
-      /^--foo only accepts a single value but is specified multiple times with values: \[bar \(string\), baz \(string\)\]$/
+      /^--foo only accepts a single value but is specified multiple times with values: \[bar \(string\), baz \(string\)\]$/,
     );
   });
 
@@ -388,7 +422,7 @@ describe('Command', () => {
             v < 5
               ? { success: true, value: v }
               : { success: false, error: 'Foo must be less than 5' },
-        })
+        }),
       )
       .handle(({ args }) => args.foo * args.foo)
       .run(['--foo=2']);
@@ -406,10 +440,10 @@ describe('Command', () => {
               v < 5
                 ? { success: true, value: v }
                 : { success: false, error: 'must be less than 5' },
-          })
+          }),
         )
         .handle(({ args }) => args.foo * args.foo)
-        .run(['--foo=6'])
+        .run(['--foo=6']),
     ).rejects.toThrow(/^--foo must be less than 5$/);
   });
 
@@ -420,7 +454,7 @@ describe('Command', () => {
         o.number({
           required: true,
           validate: (v: number) => v < 5,
-        })
+        }),
       )
       .handle(({ args }) => args.foo * args.foo)
       .run(['--foo=2']);
@@ -435,10 +469,10 @@ describe('Command', () => {
           o.number({
             required: true,
             validate: (v) => v < 5,
-          })
+          }),
         )
         .handle(({ args }) => args.foo * args.foo)
-        .run(['--foo=6'])
+        .run(['--foo=6']),
     ).rejects.toThrow(/^--foo is invalid$/);
   });
 
@@ -450,10 +484,10 @@ describe('Command', () => {
           o.number({
             required: true,
             validate: (v) => v < 5 || 'must be less than 5',
-          })
+          }),
         )
         .handle(({ args }) => args.foo * args.foo)
-        .run(['--foo=6'])
+        .run(['--foo=6']),
     ).rejects.toThrow(/^--foo must be less than 5$/);
   });
 });
