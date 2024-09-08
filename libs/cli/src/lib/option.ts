@@ -100,6 +100,7 @@ export function boolean<O extends OptionBase>(
 
 export function dict<O extends OptionBase>(
   options?: O & {
+    separator?: string;
     fallback?: NoInfer<() => Dict | undefined>;
     validate?: NoInfer<(value: Dict) => SimpleValidation<Dict>>;
   },

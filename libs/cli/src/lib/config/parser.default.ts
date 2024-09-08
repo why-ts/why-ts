@@ -136,19 +136,17 @@ export class MinimistParser implements Parser {
       value,
     });
 
-    const expected = option[TYPE];
-
-    return match([expected, value])
-      .with(['number', P.number], ([, v]) => ok(v))
-      .with(['number', P.string], ([, v]) => {
+    return match([option, value])
+      .with([{ [TYPE]: 'number' }, P.number], ([, v]) => ok(v))
+      .with([{ [TYPE]: 'number' }, P.string], ([, v]) => {
         const num = Number(v);
         return isNaN(num)
           ? fail(`must be a number but got ${this.printValue(value)}`)
           : ok(num);
       })
 
-      .with(['numbers', P.number], ([, v]) => ok([v]))
-      .with(['numbers', P.array(P.number)], ([, v]) =>
+      .with([{ [TYPE]: 'numbers' }, P.number], ([, v]) => ok([v]))
+      .with([{ [TYPE]: 'numbers' }, P.array(P.number)], ([, v]) =>
         match(v.filter(isNaN))
           .with([], () => ok(value))
           .otherwise((invalid) =>
@@ -156,20 +154,20 @@ export class MinimistParser implements Parser {
           ),
       )
 
-      .with(['date', P.string.or(P.number)], ([, v]) => {
+      .with([{ [TYPE]: 'date' }, P.string.or(P.number)], ([, v]) => {
         const date = new Date(v);
         return isNaN(date.getTime())
           ? fail(`must be a date but got ${this.printValue(value)}`)
           : ok(date);
       })
 
-      .with(['dates', P.string.or(P.number)], ([, v]) => {
+      .with([{ [TYPE]: 'dates' }, P.string.or(P.number)], ([, v]) => {
         const date = new Date(v);
         return isNaN(date.getTime())
           ? fail(`must be an date but got ${this.printValue(value)}`)
           : ok([date]);
       })
-      .with(['dates', P.array(P.string.or(P.number))], ([, v]) => {
+      .with([{ [TYPE]: 'dates' }, P.array(P.string.or(P.number))], ([, v]) => {
         const dates = v.map((x) => [x, new Date(x)] as const);
         return match(dates.filter(([, x]) => isNaN(x.getTime())))
           .with([], () => ok(dates.map(([, x]) => x)))
@@ -182,30 +180,30 @@ export class MinimistParser implements Parser {
           );
       })
 
-      .with(['boolean', P.string], ([, v]) =>
+      .with([{ [TYPE]: 'boolean' }, P.string], ([, v]) =>
         ok(!FALSY.includes(v.toLowerCase())),
       )
-      .with(['boolean', P.number], ([, v]) => ok(v !== 0))
-      .with(['boolean', P.boolean], ([, v]) => ok(v))
+      .with([{ [TYPE]: 'boolean' }, P.number], ([, v]) => ok(v !== 0))
+      .with([{ [TYPE]: 'boolean' }, P.boolean], ([, v]) => ok(v))
 
-      .with(['string', P.string], ([, v]) => ok(v))
+      .with([{ [TYPE]: 'string' }, P.string], ([, v]) => ok(v))
 
-      .with(['strings', P.string], ([, v]) => ok([v]))
-      .with(['strings', P.array()], ([, v]) => ok(v.map(String)))
+      .with([{ [TYPE]: 'strings' }, P.string], ([, v]) => ok([v]))
+      .with([{ [TYPE]: 'strings' }, P.array()], ([, v]) => ok(v.map(String)))
 
-      .with(['dict', P.string], ([, v]) => {
+      .with([{ [TYPE]: 'dict' }, P.string], ([o, v]) => {
         const map = new Map<string, string>();
-        const parsed = this.parseDictEntry(v);
+        const parsed = this.parseDictEntry(v, o.separator);
         return parsed === undefined
           ? fail(
               `must be a key-value pair in the form key=value, but got ${this.printValue(v)}`,
             )
           : (map.set(parsed[0], parsed[1]), ok(map));
       })
-      .with(['dict', P.array(P.string)], ([, v]) => {
+      .with([{ [TYPE]: 'dict' }, P.array(P.string)], ([o, v]) => {
         const map = new Map<string, string>();
         for (const e of v) {
-          const parsed = this.parseDictEntry(e);
+          const parsed = this.parseDictEntry(e, o.separator);
           if (parsed === undefined) {
             return fail(
               `must be a key-value pair in the form key=value, but got ${this.printValue(e)}`,
@@ -216,7 +214,7 @@ export class MinimistParser implements Parser {
         return ok(map);
       })
 
-      .with(['choice', P.string], ([, v]) => {
+      .with([{ [TYPE]: 'choice' }, P.string], ([, v]) => {
         const { choices } = option as OptionChoicesVariant;
         return choices.includes(v)
           ? ok(v)
@@ -226,20 +224,23 @@ export class MinimistParser implements Parser {
             );
       })
       .with(
-        [P.union('number', 'boolean', 'string', 'choice'), P.array()],
+        [
+          { [TYPE]: P.union('number', 'boolean', 'string', 'choice') },
+          P.array(),
+        ],
         ([, v]) =>
           fail(
             `only accepts a single value but is specified multiple times with values: ` +
               this.printValue(v),
           ),
       )
-      .otherwise(([e, v]) => {
-        const expected = match(e)
+      .otherwise(([o, v]) => {
+        const expected = match(o)
           .with(
-            P.union('numbers', 'dates', 'strings'),
-            () => `an array of ${e}`,
+            { [TYPE]: P.union('numbers', 'dates', 'strings').select() },
+            (t) => `an array of ${t}`,
           )
-          .otherwise((e) => `a ${e}`);
+          .otherwise((o) => `a ${o[TYPE]}`);
 
         return fail(`must be ${expected} but got ${this.printValue(v)}`);
       });
@@ -259,8 +260,8 @@ export class MinimistParser implements Parser {
       : printSingle(v);
   }
 
-  private parseDictEntry(val: string): [string, string] | undefined {
-    return match(val.indexOf('='))
+  private parseDictEntry(val: string, sep = '='): [string, string] | undefined {
+    return match(val.indexOf(sep))
       .with(-1, () => undefined)
       .otherwise((i) => [val.substring(0, i), val.substring(i + 1)]);
   }

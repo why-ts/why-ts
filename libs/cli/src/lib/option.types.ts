@@ -124,6 +124,7 @@ export type OptionBooleanVariant = {
 
 export type OptionDictVariant = {
   readonly [TYPE]: 'dict';
+  readonly separator?: string;
   readonly fallback?: () => Dict | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // `any` is required for func arg variance to work properly

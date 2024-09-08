@@ -161,6 +161,19 @@ describe('Command', () => {
     );
   });
 
+  it('should parse dict (custom separator)', async () => {
+    const output = await slient
+      .option('foo', o.dict({ separator: ':' }))
+      .handle(({ args }) => args.foo)
+      .run(['--foo=bar:baz', '--foo', 'x:y']);
+    expect(output.result).toEqual(
+      new Map([
+        ['bar', 'baz'],
+        ['x', 'y'],
+      ]),
+    );
+  });
+
   it('should parse dict (alias)', async () => {
     const output = await slient
       .option(['foo', 'f'], o.dict())
