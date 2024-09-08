@@ -127,15 +127,6 @@ export class MinimistParser implements Parser {
   }
 
   private validate(value: unknown, option: Option): Validation<unknown> {
-    const fail = (error: string): Validation<unknown> => ({
-      success: false,
-      error,
-    });
-    const ok = (value: unknown): Validation<unknown> => ({
-      success: true,
-      value,
-    });
-
     return match([option, value])
       .with([{ [TYPE]: 'number' }, P.number], ([, v]) => ok(v))
       .with([{ [TYPE]: 'number' }, P.string], ([, v]) => {
@@ -191,28 +182,12 @@ export class MinimistParser implements Parser {
       .with([{ [TYPE]: 'strings' }, P.string], ([, v]) => ok([v]))
       .with([{ [TYPE]: 'strings' }, P.array()], ([, v]) => ok(v.map(String)))
 
-      .with([{ [TYPE]: 'dict' }, P.string], ([o, v]) => {
-        const map = new Map<string, string>();
-        const parsed = this.parseDictEntry(v, o.separator);
-        return parsed === undefined
-          ? fail(
-              `must be a key-value pair in the form key=value, but got ${this.printValue(v)}`,
-            )
-          : (map.set(parsed[0], parsed[1]), ok(map));
-      })
-      .with([{ [TYPE]: 'dict' }, P.array(P.string)], ([o, v]) => {
-        const map = new Map<string, string>();
-        for (const e of v) {
-          const parsed = this.parseDictEntry(e, o.separator);
-          if (parsed === undefined) {
-            return fail(
-              `must be a key-value pair in the form key=value, but got ${this.printValue(e)}`,
-            );
-          }
-          map.set(parsed[0], parsed[1]);
-        }
-        return ok(map);
-      })
+      .with([{ [TYPE]: 'dict' }, P.string], ([o, v]) =>
+        this.parseDict([v], o.separator),
+      )
+      .with([{ [TYPE]: 'dict' }, P.array(P.string)], ([o, v]) =>
+        this.parseDict(v, o.separator),
+      )
 
       .with([{ [TYPE]: 'choice' }, P.string], ([, v]) => {
         const { choices } = option as OptionChoicesVariant;
@@ -260,11 +235,29 @@ export class MinimistParser implements Parser {
       : printSingle(v);
   }
 
-  private parseDictEntry(val: string, sep = '='): [string, string] | undefined {
-    return match(val.indexOf(sep))
-      .with(-1, () => undefined)
-      .otherwise((i) => [val.substring(0, i), val.substring(i + 1)]);
+  private parseDict(entries: string[], sep = '=') {
+    const map = new Map();
+    for (const v of entries) {
+      const i = v.indexOf(sep);
+      switch (i) {
+        case -1:
+          return fail(
+            `must be a key-value pair in the form key${sep}value, but got ${this.printValue(v)}`,
+          );
+        default:
+          map.set(v.substring(0, i), v.substring(i + 1));
+      }
+    }
+    return ok(map);
   }
+}
+
+function fail(error: string): Validation<unknown> {
+  return { success: false, error };
+}
+
+function ok(value: unknown): Validation<unknown> {
+  return { success: true, value };
 }
 
 export default new MinimistParser();
