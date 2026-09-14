@@ -1,5 +1,7 @@
 import { inspect } from 'util';
 
+interface C1LintViolationTest {}
+
 export function peek<T>(
   v: T,
   options?: {
