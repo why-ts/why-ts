@@ -2,7 +2,9 @@
   "name": "@why-ts/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "lint": "eslint libs examples --ext .ts"
+  },
   "private": true,
   "dependencies": {
     "change-case": "^4.1.2",
