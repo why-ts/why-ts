@@ -860,7 +860,7 @@ Residual risks (none block approval): (a) stale example-cli-e2e glob in nx.json 
 
 ### A1 — AGENTS.md and MENTAL_MODEL.md alignment
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** R3, C1
 
@@ -868,15 +868,131 @@ Residual risks (none block approval): (a) stale example-cli-e2e glob in nx.json 
 
 #### Implementor checklist
 
-- [ ] In `docs/MENTAL_MODEL.md`, replace the `nx release`/git-tag-resolver framing under "Why this shape" and "What must never change without a human deciding it" with the Changesets equivalent (independent versioning via Changesets preserved as the locked policy; the mechanism changed with human approval, recorded at `docs/decisions/0002-nx-to-pnpm-changesets.md`)
-- [ ] In `AGENTS.md`: update territory-map rows referencing `nx.json`/`nx release`/`.verdaccio/config.yml` to reference `pnpm-workspace.yaml`, `.changeset/config.json`, and the plain `verdaccio` script; update "Debug loops"'s `pnpm exec nx test <project>` example to `pnpm --filter <project> test`; update "Done = evidence"'s description of `scripts/verify.sh` to describe the new `pnpm -r` commands
-- [ ] `rg -i 'nx release|nx run-many|nx affected|git-tag' docs/MENTAL_MODEL.md AGENTS.md` returns zero hits outside `docs/decisions/0002-*.md`'s own historical framing
+- [x] In `docs/MENTAL_MODEL.md`, replace the `nx release`/git-tag-resolver framing under "Why this shape" and "What must never change without a human deciding it" with the Changesets equivalent (independent versioning via Changesets preserved as the locked policy; the mechanism changed with human approval, recorded at `docs/decisions/0002-nx-to-pnpm-changesets.md`)
+- [x] In `AGENTS.md`: update territory-map rows referencing `nx.json`/`nx release`/`.verdaccio/config.yml` to reference `pnpm-workspace.yaml`, `.changeset/config.json`, and the plain `verdaccio` script; update "Debug loops"'s `pnpm exec nx test <project>` example to `pnpm --filter <project> test`; update "Done = evidence"'s description of `scripts/verify.sh` to describe the new `pnpm -r` commands
+- [x] `rg -i 'nx release|nx run-many|nx affected|git-tag' docs/MENTAL_MODEL.md AGENTS.md` returns zero hits outside `docs/decisions/0002-*.md`'s own historical framing
 
 #### Reviewer checklist
 
-- [ ] Confirm `AGENTS.md`'s Never-tier rows (`git push --force`, `npm publish`, `git tag -d/-f`) are untouched — this chunk only updates the Nx-specific rows
-- [ ] Confirm the "policy preserved, mechanism changed" framing is stated clearly, not just deleted
+- [x] Confirm `AGENTS.md`'s Never-tier rows (`git push --force`, `npm publish`, `git tag -d/-f`) are untouched — this chunk only updates the Nx-specific rows
+- [x] Confirm the "policy preserved, mechanism changed" framing is stated clearly, not just deleted
 
 #### Agent log
+
+2026-09-15 coder (A1): Starting. This is the final chunk of the roadmap; all others (F1, L1, B1, E1, T1, B2, R1, R2, T2, C1, R3) are approved. Read `docs/decisions/0002-nx-to-pnpm-changesets.md` for authoritative summary of what changed. About to edit `AGENTS.md` and `docs/MENTAL_MODEL.md` per Implementor checklist. Status: in_progress.
+
+2026-09-15 coder (A1): Completed all 3 Implementor checklist items. Files changed: `AGENTS.md`, `docs/MENTAL_MODEL.md` (both in A1's declared Files list; no other file touched).
+
+`docs/MENTAL_MODEL.md` changes:
+
+- "What this project is": `Nx release, projectsRelationship: "independent"` → Changesets independent-versioning-mode framing (`.changeset/config.json`'s `"fixed": []`, `"linked": []`), plus a note on the accepted dependent-bump cascade (already locked in this roadmap's Decisions and confirmed real at R2).
+- "Why this shape": replaced the git-tag-resolver bullet with a "policy locked, mechanism changed with human approval" bullet citing `docs/decisions/0002-nx-to-pnpm-changesets.md`; also replaced the `nx affected`/`nx run-many` "CI and verify intentionally differ" bullet — this was not explicitly named in the checklist text but the literal strings `nx affected`/`nx run-many` were present here, so AC-M1's grep would have failed otherwise; per the Decisions' "CI runtime tradeoff," CI and verify.sh no longer differ (both run the same full `pnpm -r --if-present` pipeline now), so the bullet's content changed, not just its wording.
+- "What must never change without a human deciding it": replaced "Git tags as the version resolver for `nx release`" with a bullet reflecting reality post-migration — Changesets does not use tags as version source of truth (unlike the retired resolver), but `changeset publish` still creates one tag per package as a side effect (confirmed at R2's real incident, where two stray tags had to be human-deleted); the Never-tier gate on tag deletion is unchanged, only the rationale text is corrected.
+- Avoided the literal substrings `nx release` and `git-tag` (hyphenated) entirely in this file, including in historical-framing sentences, since this file (unlike `docs/decisions/0002-*.md`) is not excluded from AC-M1's grep check. Used unhyphenated `git tag` and paraphrases ("Nx's release command") instead.
+
+`AGENTS.md` changes:
+
+- Territory map: row 1 (build/lint/test contract, Ask human) `nx.json` → `pnpm-workspace.yaml` (the file that now governs cross-package linking; `nx.json` still physically exists per this roadmap's Goal — Nx is unused, not deleted — but no longer functions as this contract).
+- Territory map: row 2 (publish-adjacent, Ask human) — kept `.verdaccio/config.yml` (unchanged file, confirmed still real and in use per R2's evidence) but noted it's now invoked by the plain `verdaccio` script (root `local-registry` script), and added `.changeset/config.json` (new file governing release config, written by real `changeset init` at R1).
+- Territory map: Never-tier publish row — `nx release` → `pnpm changeset publish`; Never-tier tag-deletion row's Why column — replaced the git-tag-resolver rationale with the R2-confirmed "changeset publish creates a tag per package as a side effect" rationale; gate semantics (Never tier, same three mechanical blockers) untouched, confirmed by re-reading the row's Mechanism column unchanged ("same three gates as above").
+- "The actual `nx release` execution..." paragraph → "The actual publish execution (`pnpm changeset publish`, ...)", added "(e.g. against a local Verdaccio registry)" reflecting R2's proven workflow.
+- "Debug loops": `pnpm exec nx test <project>` → `pnpm --filter <project> test`.
+- "Done = evidence": replaced the `pnpm exec nx run-many -t lint test build` example with the real 3 commands read verbatim from `scripts/verify.sh` (`pnpm --if-present run lint`, `pnpm -r --if-present run test`, `pnpm -r --if-present run build`), and replaced "CI runs `nx affected` for speed" with the accurate post-C1 state (CI runs the identical full pipeline, no changed-only fast path — cited to `docs/decisions/0002-nx-to-pnpm-changesets.md`).
+- Confirmed untouched: both Never-tier rows for `git push --force`/`-f` and the tag-deletion row's Tier/Mechanism columns; row for `dist/**` only had its parenthetical updated (`not via nx build` → `not via a package's build script`), Tier/Mechanism unchanged.
+
+Process note for reviewer: `edit_file`'s fuzzy matching silently no-op'd on two of my attempted edits and a background formatter reflowed the territory-map table into padded/aligned columns, converted `*terminal/bash*` to `_terminal/bash_`, and corrupted the "Parallel work / Claimed-by" paragraph (turned `+ branch + since)` into a stray `- branch + since)` list item, breaking the sentence). I caught this by re-reading the file and diffing against git, then fixed it directly with `python3` string-replacement (bypassing `edit_file`) to restore the original prose/table style outside my intended content changes. Final `git --no-pager diff -- AGENTS.md docs/MENTAL_MODEL.md` reviewed line-by-line above; only the intended content changed.
+
+Evidence — AC-M1 exact check (`rg` unavailable in this sandbox, same as R3 found; used `grep -inE` as an equivalent substitute, identical regex):
+
+```
+$ grep -inE 'nx release|nx run-many|nx affected|git-tag' AGENTS.md docs/MENTAL_MODEL.md
+(no output, exit 1 = zero matches)
+```
+
+Also ran `which rg` (not found) to confirm the substitution is necessary, matching R3's precedent exactly.
+
+`git --no-pager status --porcelain` confirms only 3 files dirty: `AGENTS.md`, `docs/MENTAL_MODEL.md` (A1's declared Files), and this roadmap file itself (Status/checklist/Agent log bookkeeping) — nothing outside A1's scope was touched.
+
+All 3 Implementor checklist items checked off above, each independently verified (not assumed): item 1 and 2 verified by re-reading both files in full post-edit; item 3 verified by the grep run above.
+
+Residual risks for reviewer: (1) the "CI and local verify" bullet in `docs/MENTAL_MODEL.md`'s "Why this shape" and the Never-tier tag-deletion row's Why column in `AGENTS.md` were edited beyond what the Implementor checklist's literal text named — both were necessary to satisfy AC-M1's grep (which scans the whole file, not just the named bullets) and to keep the docs accurate post-migration (per `docs/decisions/0002-nx-to-pnpm-changesets.md`'s "CI runtime tradeoff" and R2's tag incident) — reviewer should confirm these unrequested-but-necessary edits are in scope, not overreach. (2) Reviewer's own checklist item "Confirm the 'policy preserved, mechanism changed' framing is stated clearly, not just deleted" — I believe both files satisfy this (see bullets/log above) but a second read is warranted. (3) I did not verify `docs/playbooks/publish.md` (referenced by `AGENTS.md`'s updated publish-execution paragraph) for consistency — it is not in A1's Files list, so I left it untouched; if it still says `nx release` internally, that's a gap outside A1's declared scope, flagged here rather than silently fixed. (4) `nx.json`/Nx packages are still physically present in the repo (expected — Nx isn't deleted until the separate `NX_TEARDOWN` roadmap); this chunk only updates prose/doc references, not any physical Nx removal. (5) Left `Status: in_progress`, not `approved`; did not commit — cleaner stage should pick up from here.
+
+2026-09-15 cleaner (A1): Reviewed `git --no-pager diff main -- AGENTS.md docs/MENTAL_MODEL.md` line-by-line against `main`. No corrupted formatting found: territory-map table renders as plain pipe cells (no padding drift), `*terminal/bash*` still asterisk-style (not the flagged `_terminal/bash_` corruption), "Parallel work / Claimed-by" is intact prose (no stray list fragment). Diff is scoped to the intended substantive changes only (territory-map tool names, Never-tier `nx release`→`pnpm changeset publish`, Debug loops example, Done = evidence description, MENTAL_MODEL.md release/CI framing) plus the two necessary AC-M1-driven edits the coder flagged (CI/verify bullet, tag-deletion Why column) — no scope creep. Confirmed with `git --no-pager diff -w main -- AGENTS.md docs/MENTAL_MODEL.md | grep -c '^[+-]'` (74) equal to the non-whitespace-insensitive count (74): zero hidden whitespace-only reformatting anywhere in the diff.
+
+Never-tier semantics check: `git push --force`/`-f` row byte-for-byte unchanged (didn't even appear as a diff hunk). `npm publish`/`pnpm publish`/`yarn publish`/`pnpm changeset publish` row: only the 4th tool name changed (`nx release` → `pnpm changeset publish`); Tier (`**Never**`) and Mechanism (`same three gates as above`) unchanged. `git tag -d/-f/--delete` row: Tier and Mechanism unchanged; only the Why column's rationale text was corrected to reflect Changesets' tag-as-side-effect behavior (not tag-as-version-source) — the restriction itself (Never, same three gates) did not move. All three rows match the reviewer checklist's expectation.
+
+Evidence: `grep -inE 'nx release|nx run-many|nx affected|git-tag' AGENTS.md docs/MENTAL_MODEL.md` → no output, exit 1 (zero hits), confirming AC-M1 independently.
+
+`docs/MENTAL_MODEL.md`'s "What must never change without a human deciding it" section: both required bullets present. Bullet 1 (independent per-package release/versioning) states the policy is locked and only the mechanism changed, with human approval, citing the decision record — not weakened. Bullet 2 (release-history git tags) states deleting/force-mutating any tag remains a human-only call, cross-referencing `AGENTS.md`'s Never-tier — not weakened or removed.
+
+`git --no-pager status --porcelain` shows only `AGENTS.md`, `docs/MENTAL_MODEL.md`, and this roadmap file dirty — no file outside A1's Files list touched.
+
+No changes needed. The coder's direct-string-replacement fix of the background-formatter corruption held up under independent review. Left `Status: in_progress`; did not commit; did not set `approved` (that is the reviewer's call after hardener).
+
+2026-09-15 hardener (A1): Ran only the declared verify commands, no redesign.
+
+Gate 1 — AC-M1 exact grep (`rg` unavailable, matching R3/coder/cleaner precedent; used `grep -inE` as the documented substitute):
+
+```
+$ which rg
+(not found)
+$ grep -inE 'nx release|nx run-many|nx affected|git-tag' AGENTS.md docs/MENTAL_MODEL.md
+(no output, exit 1 = zero matches)
+```
+
+PASS — zero hits in both files.
+
+Gate 2 — `git --no-pager status --short`:
+
+```
+ M AGENTS.md
+ M docs/MENTAL_MODEL.md
+ M docs/roadmaps/2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md
+```
+
+PASS — only the two A1 Files (`AGENTS.md`, `docs/MENTAL_MODEL.md`) plus this roadmap doc (bookkeeping) are dirty. Nothing outside A1's declared scope touched.
+
+Gate 3 — Never-tier rows remain semantically Never-tier. Re-read `AGENTS.md`'s territory map directly and independently diffed against `main` (`git --no-pager diff main -- AGENTS.md`):
+
+- `git push --force` / `-f` row: byte-for-byte unchanged (does not appear as a diff hunk at all).
+- `npm publish`/`pnpm publish`/`yarn publish`/... row: Tier (`**Never**`) and Mechanism (`same three gates as above`) unchanged; only the 4th listed tool name changed, `nx release` → `pnpm changeset publish`.
+- `git tag -d/-f/--delete` row: Tier and Mechanism unchanged; only the Why column's rationale prose changed (git-tag-resolver framing → changeset-publish-side-effect framing per R2's tag incident). The restriction (Never, same three mechanical gates) did not move.
+
+PASS — only tool names/rationale text changed; tier semantics untouched.
+
+All 3 gates: PASS.
+
+Residual risks for reviewer (no new gaps found beyond what coder/cleaner already flagged; independently re-confirmed, not just re-stated):
+
+1. Two beyond-literal-checklist edits, independently verified via `git --no-pager diff main -- docs/MENTAL_MODEL.md` and `-- AGENTS.md`: (a) the "CI and local verify" bullet in `docs/MENTAL_MODEL.md`'s "Why this shape" (replaced the `nx affected`/`nx run-many` framing, since those literal strings would have failed AC-M1's grep), and (b) the Never-tier tag-deletion row's Why column in `AGENTS.md` (rationale corrected from tag-as-version-source to tag-as-publish-side-effect). Both are real, necessary edits driven by AC-M1's whole-file grep scope, not scope creep — confirmed by direct diff inspection above. Reviewer should still make the final call on whether these count as in-scope.
+2. `docs/playbooks/publish.md` is stale and out of A1's declared scope (not in A1's Files list, left untouched by coder/cleaner). Independently confirmed by `grep -inE 'nx release|nx run-many|nx affected|git-tag'` against that file: it still says `# Playbook: Publish a release (\`nx release\`)`, instructs `pnpm exec nx release --dry-run`/`pnpm exec nx release`, and describes git tags as `nx release`'s version source of truth — none of this matches the migrated Changesets-based flow now described in `AGENTS.md`/`docs/MENTAL_MODEL.md`. Real gap, correctly flagged as out of scope rather than silently fixed.
+3. `nx.json`/Nx packages remain physically present in the repo (expected — physical Nx removal is a separate `NX_TEARDOWN` roadmap, not this chunk).
+4. Reviewer's own checklist item, "Confirm the 'policy preserved, mechanism changed' framing is stated clearly, not just deleted" — coder/cleaner both assert this is satisfied; I did not re-litigate the prose quality judgment (outside a hardener's gate-only role) and leave it for the reviewer's read.
+
+Left `Status: in_progress`, not `approved` — that is the reviewer's call. Did not commit.
+
+2026-09-15 reviewer (A1): Independent review, fresh — did not write any of the coder/cleaner/hardener work.
+
+Verdict: **approve**.
+
+Findings:
+
+1. Never-tier rows untouched in substance. Independently ran `git --no-pager diff main -- AGENTS.md`. `git push --force`/`-f` row: does not appear in the diff at all, byte-for-byte unchanged. `npm publish`/`pnpm publish`/`yarn publish`/`pnpm changeset publish` row: only the 4th tool name changed (`nx release` → `pnpm changeset publish`); Tier (`**Never**`) and Mechanism (`same three gates as above`) columns unchanged. `git tag -d/-f/--delete` row: Tier and Mechanism unchanged; only the Why column's rationale prose changed, from "git tags are the version source of truth" to "changeset publish creates a tag per package as a side effect" — this is a more accurate rationale for the same restriction, not a weakening. Risk if wrong: an agent could believe tag deletion or a publish command is now permitted — not the case here. No change required.
+2. "Policy preserved, mechanism changed" framing is explicit in both files, not glossed over. `docs/MENTAL_MODEL.md`'s "Why this shape" bullet ("Independent per-package release, now via Changesets... the locked policy — independent per-package versioning — did not change, only the mechanism") and its "What must never change" bullet ("the policy is locked; only its mechanism changed... with human approval") both cite `docs/decisions/0002-nx-to-pnpm-changesets.md`. `AGENTS.md` correctly does not restate the policy claim itself (that's `MENTAL_MODEL.md`'s job per the Authority order) but reflects the new mechanism consistently in the territory map and DANGER-list paragraph. No change required.
+3. Re-ran `grep -inE 'nx release|nx run-many|nx affected|git-tag' AGENTS.md docs/MENTAL_MODEL.md` myself from a fresh shell: zero hits (exit 1). Confirms AC-M1 independently of coder/cleaner/hardener's runs.
+4. Beyond-checklist edits (MENTAL_MODEL.md's CI/verify bullet; AGENTS.md's tag-deletion Why column) are appropriately scoped, not scope creep. Both stay within the two declared Files, both are necessary for AC-M1's grep (which scans the whole file, not just the named bullets) to pass, and both correct prose that would otherwise misdescribe the post-migration system (CI/verify no longer differ; tags are a side effect, not the version source of truth). No change required.
+5. Scope check: `git --no-pager status --short` shows only `AGENTS.md`, `docs/MENTAL_MODEL.md`, and this roadmap file dirty. No scope creep.
+6. Cleanup verified: read the full `git --no-pager diff main -- AGENTS.md docs/MENTAL_MODEL.md` myself. Territory-map table renders as plain, unpadded pipe cells; `*terminal/bash*` still asterisk-style (the flagged `_terminal/bash_` corruption is absent, and that sentence doesn't appear in the diff at all — untouched); "Parallel work / Claimed-by" doesn't appear in the diff either — untouched, so the flagged stray list-fragment corruption is confirmed gone. Diff reads cleanly end to end, matching cleaner's and hardener's independent findings. No change required.
+7. Confirmed real but correctly out-of-scope gap (flagged by coder/hardener, independently re-confirmed by me via `grep`): `docs/playbooks/publish.md` still says `nx release` throughout (title, steps, rollback) and is not in A1's declared Files list. This is stale and should be fixed in a follow-up (not blocking A1, which only owns `AGENTS.md`/`docs/MENTAL_MODEL.md`).
+8. Dependencies R3 and C1 are both `Status: approved`; all other 11 chunks in this roadmap are `Status: approved`. This is the last chunk. Pending only the Ask-human sign-offs already logged for L1/C1, approving A1 means every chunk in this roadmap's own task list is now approved.
+
+Residual risks (informational, not blocking):
+
+- `docs/playbooks/publish.md` is stale (still describes `nx release`); real but out of A1's scope — worth a small follow-up fix or a new roadmap chunk before anyone actually runs a real publish from it.
+- `nx.json`/Nx packages remain physically present (expected; removal is the separate `NX_TEARDOWN` roadmap).
+
+Did not commit; did not set Status to `approved` — orchestrator's call. Checked off both outstanding Reviewer checklist boxes above (both verified true).
+
+2026-09-15 orchestrator (A1): Set Status to `approved` per reviewer's verdict. This is the last chunk — all 12 chunks (F1, L1, B1, E1, T1, B2, R1, R2, T2, C1, R3, A1) are now `approved`. Committing this chunk, then dispatching end-of-roadmap qa per the six-pack Protocol Pack.
 
 ---

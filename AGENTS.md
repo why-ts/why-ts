@@ -45,7 +45,7 @@ YYYY-MM-DD agent (chunk): Did X. Evidence: <cmd or path>. Status: <status>.
 
 Form a hypothesis, instrument if needed, then auto-run the narrowest path
 that can exercise the behavior and collect the evidence yourself. Prefer:
-project test targets (`pnpm exec nx test <project>`) → `./scripts/verify.sh`
+project test targets (`pnpm --filter <project> test`) → `./scripts/verify.sh`
 → manual repro script. Do not stop at "please run this and paste logs" if
 you can observe it yourself. Ask the human only for operator-only steps
 (publishing, npm auth, anything the DANGER list marks Never/Ask human).
@@ -55,12 +55,12 @@ you can observe it yourself. Ask the human only for operator-only steps
 | Area | Tier | Why | Mechanism |
 | --- | --- | --- | --- |
 | `libs/*/src`, tests, docs, `README.md`, non-release config | **Open** | Ordinary development work | none needed |
-| `nx.json`, `tsconfig.base.json`, `.eslintrc.json`, CI workflow (`.github/workflows/ci.yml`) | **Ask human** | Changes here affect every project's build/lint/test contract | code review; no mechanical block |
-| `libs/*/package.json` version/publishConfig fields, `.npmrc`, `.verdaccio/config.yml` | **Ask human** | Touches how/where packages get published | code review; no mechanical block |
-| `dist/**` (build output) | **Ask human** if touched directly by an agent tool (not via `nx build`) | Build output that becomes the published artifact | `.zed/settings.json` `delete_path.always_confirm` on `dist/` |
+| `pnpm-workspace.yaml`, `tsconfig.base.json`, `.eslintrc.json`, CI workflow (`.github/workflows/ci.yml`) | **Ask human** | Changes here affect every project's build/lint/test contract | code review; no mechanical block |
+| `libs/*/package.json` version/publishConfig fields, `.npmrc`, `.verdaccio/config.yml` (used by the plain `verdaccio` script), `.changeset/config.json` | **Ask human** | Touches how/where packages get published | code review; no mechanical block |
+| `dist/**` (build output) | **Ask human** if touched directly by an agent tool (not via a package's `build` script) | Build output that becomes the published artifact | `.zed/settings.json` `delete_path.always_confirm` on `dist/` |
 | `git push --force` / `-f` (any branch) | **Never** | Public repo; force-push rewrites shared history | `.zed/settings.json` terminal `always_deny`; `.cursor/hooks.json`; `.github/hooks/deny-dangerous.json` |
-| `npm publish`, `pnpm publish`, `yarn publish`, `nx release` (version + tag + publish) | **Never** | Publishes public, immutable package versions | same three gates as above |
-| `git tag -d/-f/--delete`, `git push --delete <tag>` / `:refs/tags/...` | **Never** | `nx release` uses git tags as the version source of truth (`currentVersionResolver: git-tag`); mutating tags corrupts version history | same three gates as above |
+| `npm publish`, `pnpm publish`, `yarn publish`, `pnpm changeset publish` (version + tag + publish) | **Never** | Publishes public, immutable package versions | same three gates as above |
+| `git tag -d/-f/--delete`, `git push --delete <tag>` / `:refs/tags/...` | **Never** | `pnpm changeset publish` creates one git tag per published package as a side effect (confirmed at chunk R2 of the pnpm migration); mutating tags corrupts release history | same three gates as above |
 
 **Never** means: an agent must not run it, and three independent mechanisms
 block the *terminal/bash* form of it regardless of which tool is driving:
@@ -83,9 +83,10 @@ tools regardless of how they are launched. There is no known mechanical
 gate for a human running these commands directly by hand; that path is
 Ask-human by convention, not blocked.
 
-The actual `nx release` execution (which publishes to npm) is **human-only**
-— see `docs/playbooks/publish.md`. An agent may prepare and dry-run a
-release, never execute the real one.
+The actual publish execution (`pnpm changeset publish`, which publishes to
+npm) is **human-only** — see `docs/playbooks/publish.md`. An agent may
+prepare and dry-run a release (e.g. against a local Verdaccio registry),
+never execute the real one.
 
 ## Instructions are `AGENTS.md` only
 
@@ -107,11 +108,15 @@ claim a roadmap chunk in `docs/roadmaps/_index.md` (agent + roadmap + chunk
 
 ## Done = evidence
 
-A chunk of work is done when `./scripts/verify.sh` passes
-(`pnpm exec nx run-many -t lint test build`), and the roadmap Status /
-checklist / Agent log are updated on disk in the same session. CI runs
-`nx affected` for speed (`.github/workflows/ci.yml`); `verify.sh` runs
-everything, so treat it as the trustworthy full-repo signal.
+A chunk of work is done when `./scripts/verify.sh` passes (`pnpm
+--if-present run lint`, `pnpm -r --if-present run test`, `pnpm -r
+--if-present run build`), and the roadmap Status / checklist / Agent log
+are updated on disk in the same session. CI (`.github/workflows/ci.yml`)
+runs the identical full pipeline on every push/PR — no changed-only fast
+path (accepted tradeoff, see
+`docs/decisions/0002-nx-to-pnpm-changesets.md`) — so `verify.sh` and CI
+give the same signal; treat either green result as the trustworthy
+full-repo signal.
 
 ## Roadmaps
 
