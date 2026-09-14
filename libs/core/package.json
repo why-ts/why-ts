@@ -11,5 +11,8 @@
   "typings": "./src/index.d.ts",
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json && cp package.json README.md ../../dist/libs/core/"
   }
 }
