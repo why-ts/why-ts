@@ -31,6 +31,6 @@ human joins, claim a chunk here before starting:
 
 | Agent        | Roadmap                                    | Chunk | Branch | Since      |
 | ------------ | ------------------------------------------ | ----- | ------ | ---------- |
-| orchestrator | 2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md | R3    | main   | 2026-09-15 |
+| orchestrator | 2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md | A1    | main   | 2026-09-15 |
 
-R2 approved and merged 2026-09-15. Remaining: R3 (in progress), then A1.
+R3 approved and merged 2026-09-15. A1 is the final chunk in this roadmap.
