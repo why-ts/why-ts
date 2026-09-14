@@ -16,5 +16,8 @@
   "typings": "./src/index.d.ts",
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json && rm -rf ../../dist/libs/irpc/src && mv ../../dist/libs/irpc/libs/irpc/src ../../dist/libs/irpc/src && rm -rf ../../dist/libs/irpc/libs && cp package.json README.md ../../dist/libs/irpc/"
   }
 }
