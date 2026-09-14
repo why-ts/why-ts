@@ -27,6 +27,6 @@ auth for a release. Not for interactive create-roadmap Q&A.)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent        | Roadmap | Chunk | Branch | Since |
-| ------------ | ------- | ----- | ------ | ----- |
-| _(none yet)_ |         |       |        |       |
+| Agent        | Roadmap                                    | Chunk | Branch | Since      |
+| ------------ | ------------------------------------------ | ----- | ------ | ---------- |
+| orchestrator | 2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md | T1    | main   | 2026-09-14 |
