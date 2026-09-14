@@ -11,7 +11,7 @@ here.
 
 ## Not Ready
 
-_(none yet)_
+- `2609142054_CLI_BUILD_STACK_OVERFLOW_FIX_ROADMAP.md` — draft, not Executable. Awaiting human approval.
 
 ## Blocked
 
