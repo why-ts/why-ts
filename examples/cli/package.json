@@ -1,0 +1,12 @@
+{
+  "name": "examples-cli",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node -r @swc-node/register src/main.ts"
+  },
+  "dependencies": {
+    "@why-ts/cli": "workspace:*",
+    "ts-pattern": "^5.3.1"
+  }
+}

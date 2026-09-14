@@ -464,7 +464,7 @@ Residual risks (none block approval): (a) `NX_SOCKET_DIR` workaround is specific
 
 ### E1 — examples/cli off Nx
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** F1
 
@@ -472,17 +472,45 @@ Residual risks (none block approval): (a) `NX_SOCKET_DIR` workaround is specific
 
 #### Implementor checklist
 
-- [ ] Add a minimal `examples/cli/package.json` (`"private": true`, name e.g. `examples-cli`) with `"start": "node -r @swc-node/register src/main.ts"` (reusing the exact loader already used by the Nx `eval` target — `@swc-node/register` is a real, used dependency, not dead Nx weight)
-- [ ] Delete `examples/cli/project.json`
-- [ ] Confirm `pnpm --filter examples-cli start` runs the CLI example interactively, matching today's `nx run example-cli:eval` behavior
-- [ ] Confirm no `build` script is added (accepted: this app drops out of CI/build coverage per Decisions)
+- [x] Add a minimal `examples/cli/package.json` (`"private": true`, name e.g. `examples-cli`) with `"start": "node -r @swc-node/register src/main.ts"` (reusing the exact loader already used by the Nx `eval` target — `@swc-node/register` is a real, used dependency, not dead Nx weight)
+- [x] Delete `examples/cli/project.json`
+- [x] Confirm `pnpm --filter examples-cli start` runs the CLI example interactively, matching today's `nx run example-cli:eval` behavior
+- [x] Confirm no `build` script is added (accepted: this app drops out of CI/build coverage per Decisions)
 
 #### Reviewer checklist
 
-- [ ] Confirm the example runs identically to today's manual `eval` workflow
-- [ ] Confirm no stray `@nx/esbuild`-only config remains referencing this app
+- [x] Confirm the example runs identically to today's manual `eval` workflow
+- [x] Confirm no stray `@nx/esbuild`-only config remains referencing this app
 
 #### Agent log
+
+2026-09-14 coder (E1): Starting. Reading examples/cli/project.json, tsconfig chain, libs/cli/package.json for conventions. Status: in_progress.
+
+2026-09-14 coder (E1): Implemented. Files changed: added `examples/cli/package.json` (private, name `examples-cli`, single `start` script `node -r @swc-node/register src/main.ts`, deps `@why-ts/cli: workspace:*` and `ts-pattern` — both are directly imported by `src/main.ts` / `src/prompt-test/*` and are required for pnpm's strict node_modules to resolve them at runtime, since pnpm does not hoist undeclared deps into a package's own resolution scope); deleted `examples/cli/project.json`. `pnpm-lock.yaml` updated by `pnpm install` (root package.json untouched, verified no `packageManager` field was injected).
+
+Commands + evidence (all run with `COREPACK_ENABLE_AUTO_PIN=0` prefix):
+
+- `pnpm install` — succeeded, linked all deps incl. `@why-ts/cli` workspace link, no errors (only pre-existing "Ignored build scripts" advisory unrelated to this chunk).
+- `git status --short` after install — confirmed no `packageManager` field appended to root `package.json` (grep for `packageManager` in `package.json` returned no hits).
+- `pnpm --filter examples-cli start` (no args) — exits 1, prints `ERROR No command provided` + full help/command list, identical shape to prior `nx run example-cli:eval` behavior with no args.
+- `pnpm --filter examples-cli start flip` — prints `> flip`, exits 0.
+- `printf 'hello\n' | pnpm --filter examples-cli start prompt-test --type string` — prompt `Enter a string …` answered from piped stdin, printed `hello (string)`, exits 0. Confirms real interactive (prompts-based) behavior works end-to-end through `@swc-node/register` without `TS_NODE_PROJECT`/nx.
+- `pnpm --filter examples-cli run` — lists only one lifecycle script, `start`; confirms no `build` script present.
+
+Residual risks / notes for cleaner-hardener-reviewer:
+
+- `nx.json` (`plugins[].exclude`) still references a stale `example-cli-e2e/**/*` glob (for a project that doesn't appear to exist in this repo). It is NOT in E1's Files list (nx.json is Ask-human tier per AGENTS.md) so left untouched; flagging for whoever eventually retires `nx.json` wholesale.
+- `examples/cli/.eslintrc.json`, `tsconfig.json`, `tsconfig.app.json` were left as-is (not in Files list); they still extend root eslint/tsconfig config and are plain (non-Nx) TS config, so lint/type-check should keep working, but not independently re-verified by me here (no `lint`/`typecheck` script exists in the new minimal `package.json` since the Files list only specifies package.json + project.json deletion).
+- Did not run `pnpm approve-builds`; pre-existing "Ignored build scripts" warning (`@swc/core, core-js, esbuild, nx`) is a pre-existing condition from `pnpm install`, unrelated to E1, left as-is.
+- Status left at `in_progress` per instructions; not committed — worktree left dirty for cleaner/hardener/reviewer.
+
+2026-09-14 cleaner (E1): Reviewed `examples/cli/package.json` and confirmed `examples/cli/project.json` deletion; no changes made, implementation was already minimal and correct. Checks performed: (1) dependency need — `@why-ts/cli` and `ts-pattern` are both directly imported by `src/main.ts`; `@swc-node/register` is intentionally omitted from this package's own deps because Node's module resolution walks up to root `node_modules` (confirmed `ls node_modules | grep -i swc` at root shows `@swc`, `@swc-node`, `swc-loader`; `examples/cli/node_modules` has only the `@why-ts/cli` symlink) — not an oversight. (2) formatting — `COREPACK_ENABLE_AUTO_PIN=0 pnpm exec prettier --check examples/cli/package.json` → passes; trailing newline present; 2-space indent matches sibling `package.json` files. (3) naming — `examples-cli` differs from the old Nx project name `example-cli` (singular), but this matches the roadmap's own Files/Acceptance text (`pnpm --filter examples-cli start`), so not a defect. (4) half-done check — no stray `build`/`lint`/`test` scripts, no leftover Nx-only fields; `.eslintrc.json`/`tsconfig*.json` correctly left untouched (outside Files list) and still resolve (extends chain unchanged). Re-verification: `COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter examples-cli start flip` → prints `> flip`, exit code 0. `git status --porcelain` unchanged from coder's handoff (`M` roadmap doc, `D examples/cli/project.json`, `M pnpm-lock.yaml`, `?? examples/cli/package.json`); no `packageManager` drift in root `package.json`. Flag for hardener/reviewer: none new: the two residual risks the coder already logged (stale `example-cli-e2e` glob in `nx.json`; `.eslintrc.json`/tsconfig lint/typecheck not independently re-run since no such script exists in the new minimal `package.json`) still stand and remain out of E1's Files scope. Status: in_progress.
+
+2026-09-14 hardener (E1): Ran only the three declared verify commands for this chunk, no others. (1) `COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter examples-cli start flip` — exit 0; output `> examples-cli@0.0.0 start ... node -r @swc-node/register src/main.ts flip` then `> flip`. PASS. (2) `grep -ri nx examples/cli/package.json` — zero matches (grep exit 1 = no hits); `ls examples/cli/project.json` — `No such file or directory` (file confirmed gone from worktree). PASS. (3) Read `examples/cli/package.json` directly — `scripts` object contains only `start`; no `build` key present. PASS. `git status --short` reconfirms unchanged worktree state from cleaner's handoff (`M` roadmap doc, `D examples/cli/project.json`, `M pnpm-lock.yaml`, `?? examples/cli/package.json`). All three declared gates: PASS. Residual risks for reviewer (no new ones found; restating coder/cleaner's already-flagged items plus confirming their scope): (a) `nx.json` (`plugins[].exclude`) still has a stale `example-cli-e2e/**/*` glob for a project that doesn't appear to exist in this repo — out of scope for E1 (nx.json is Ask-human tier, not in E1's Files list); unresolved carry-over for whoever retires `nx.json` wholesale. (b) `examples/cli/.eslintrc.json` and `tsconfig.json`/`tsconfig.app.json` were left untouched (correctly, per Files list) and were not independently re-verified by lint/typecheck here either, since no `lint`/`typecheck` script exists in the new minimal `package.json` and none of the three declared verify commands for this chunk exercise them. Not a gate failure — outside this chunk's declared verify surface — but reviewer should note it as unverified-by-automation. No other residual risks identified. Status: in_progress (not changed by hardener, per role).
+
+2026-09-14 reviewer (E1): Verdict: approve. Independently re-ran both AC-E1 workflows from a clean shell: COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter examples-cli start flip exits 0 with output '> flip'. printf 'hello\n' piped into COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter examples-cli start prompt-test --type string answers the prompt from stdin, prints 'hello (string)', exits 0. examples/cli/project.json confirmed absent (find_path no match). grep -ril nx examples/cli --exclude-dir=node_modules returns zero hits. pnpm --filter examples-cli run lists only the start script, no build. git status --short (full repo) shows exactly four entries: modified roadmap doc, deleted examples/cli/project.json, modified pnpm-lock.yaml, new examples/cli/package.json -- no scope creep. grep packageManager package.json at root returns zero hits, no drift. Traced both @why-ts/cli and ts-pattern to real imports in src/main.ts, src/prompt-test/command.ts, and src/prompt-test/handler.ts -- not speculative additions. Confirmed @swc-node/register is correctly omitted from the example's own deps: it is a root devDependency and Node's upward node_modules resolution finds it via the root node_modules/@swc-node/register symlink from examples/cli, whose own node_modules contains only @why-ts and ts-pattern -- matches cleaner's claim exactly. Cleanup pass (no changes needed) is plausible: implementation was already minimal and correctly scoped to the Files list; found nothing to add or remove beyond what coder/cleaner/hardener already logged. Checked off both outstanding Reviewer checklist boxes above.
+
+Residual risks (none block approval): (a) stale example-cli-e2e glob in nx.json plugins[].exclude -- out of E1's Files scope (Ask-human tier), carry-over for whole-nx.json retirement later. (b) examples/cli/.eslintrc.json and tsconfig*.json lint/typecheck not exercised by any script in the new package.json -- correctly out of scope per Files list, unverified-by-automation only, not a gate failure. Status: in_progress (Status change to approved left to orchestrator, per role).
 
 ---
 
