@@ -23,15 +23,16 @@ This roadmap covers migration only — it proves the new pipeline works end-to-e
 - Decision record: this migration is recorded at `docs/decisions/0002-nx-to-pnpm-changesets.md` (`0001-cold-run.md` is the only existing record).
 - CI runtime tradeoff: CI moves from `nx affected` (changed-projects-only) to always running `pnpm -r` for lint/test/build on every push/PR. Accepted — at 3 packages the affected-only savings are judged negligible, and this removes an entire tool category (task-graph/caching) in service of the Goal.
 - Ask-human-tier chunks: `L1` (edits `.eslintrc.json`) and `C1` (edits `.github/workflows/ci.yml`) are explicitly Ask-human tier per `AGENTS.md`'s territory map. They are not "lower risk" just because their diffs are mechanical — flag them for explicit human sign-off before merge, distinct from the six-pack review that also applies to every chunk.
+- **AC-W1a narrowing (approved by user 2026-09-14, after F1 was blocked on real evidence):** F1's coder stage found, and the orchestrator independently reproduced, two failures in the original AC-W1a's "Nx's own build/test/lint still passes unchanged" clause: (1) a **real regression** — pnpm's per-package `node_modules` (needed for the `@why-ts/core` symlink itself) breaks ESLint's cwd-relative `.eslintignore` lookup and `irpc`'s `.eslintrc.json` `extends` resolution through the new symlink, so `core:lint`/`cli:lint`/`irpc:lint` all break; the fix is `.eslintrc.json`/`.eslintignore`, Ask-human tier, and exactly `L1`'s job. (2) a **pre-existing, migration-unrelated** failure — `nx build cli` fails with a TypeScript 5.5.4 `RangeError: Maximum call stack size exceeded`, reproduced identically on a pristine pre-F1 checkout with a fresh `pnpm install` (this sandbox's Node/pnpm regenerate the committed `lockfileVersion: '6.0'` lockfile into a newer format that triggers it). Decision: AC-W1a's lint-parity requirement is deferred to `L1` (see AC-L1); Nx build parity is dropped from this roadmap's Acceptance entirely (out of scope — tracked as a separate, human-directed fix roadmap, not gating this migration). AC-W1a itself now only requires the symlink and Nx **test** parity, both of which F1 satisfies (verified: `pnpm exec nx run-many -t test --skip-nx-cache` passes cleanly under F1's diff).
 
 ## Acceptance
 
-### Feature: Workspace linking (checked at chunk F1)
+### Feature: Workspace linking (checked at chunk F1; lint parity deferred to L1 — see AC-W1a narrowing above)
 
 Scenario AC-W1a — real symlink, not a copy
 Given `pnpm-workspace.yaml` lists `libs/*` and `examples/*`, and `libs/irpc/package.json` declares `"@why-ts/core": "workspace:*"`
 When `pnpm install` runs from repo root
-Then `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core` (a symlink, not a hoisted copy), and Nx's own build/test/lint (`pnpm exec nx run-many -t lint test build`) still passes unchanged, proving this chunk is purely additive
+Then `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core` (a real symlink, not a hoisted copy), and Nx's own **test** target (`pnpm exec nx run-many -t test`) still passes unchanged, proving the workspace-linking half of this chunk is purely additive. (Nx **lint** parity is not required here — see `L1`/AC-L1; Nx **build** parity is not required anywhere in this roadmap — see Decisions.)
 
 ### Feature: Per-package build (checked at chunks B1/B2)
 
@@ -120,7 +121,7 @@ Approved 2026-09-14 by the user, explicitly ("mark the migration roadmap executa
 
 ### F1 — pnpm workspace foundation
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** none
 
@@ -128,19 +129,29 @@ Approved 2026-09-14 by the user, explicitly ("mark the migration roadmap executa
 
 #### Implementor checklist
 
-- [ ] Create `pnpm-workspace.yaml` at repo root: `packages: ["libs/*", "examples/*"]`
-- [ ] Change `libs/irpc/package.json`'s `"@why-ts/core"` dependency from `"0.0.1"` to `"workspace:*"` (note: this touches `dependencies`, not the `version`/`publishConfig` fields AGENTS.md's territory map names as Ask-human)
-- [ ] Run `pnpm install` from repo root; do not hand-edit `pnpm-lock.yaml`
-- [ ] Verify `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core`
-- [ ] Confirm `pnpm exec nx run-many -t lint test build` still passes unchanged after this chunk (purely additive)
+- [x] Create `pnpm-workspace.yaml` at repo root: `packages: ["libs/*", "examples/*"]`
+- [x] Change `libs/irpc/package.json`'s `"@why-ts/core"` dependency from `"0.0.1"` to `"workspace:*"` (note: this touches `dependencies`, not the `version`/`publishConfig` fields AGENTS.md's territory map names as Ask-human)
+- [x] Run `pnpm install` from repo root; do not hand-edit `pnpm-lock.yaml`
+- [x] Verify `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core`
+- [x] Confirm `pnpm exec nx run-many -t test` still passes unchanged after this chunk (narrowed scope — lint parity deferred to `L1`, build parity dropped from roadmap Acceptance entirely; see Decisions "AC-W1a narrowing")
 
 #### Reviewer checklist
 
-- [ ] Confirm `pnpm-workspace.yaml` covers exactly `libs/*` and `examples/*`
-- [ ] Confirm `libs/irpc/package.json` has no other unrelated diff
-- [ ] Confirm AC-W1a passes and Nx is still fully functional after this chunk
+- [x] Confirm `pnpm-workspace.yaml` covers exactly `libs/*` and `examples/*`
+- [x] Confirm `libs/irpc/package.json` has no other unrelated diff
+- [x] Confirm narrowed AC-W1a passes (symlink + Nx test parity only) and Nx test/build (per package, outside the known pre-existing `cli:build` gap) is still fully functional after this chunk
 
 #### Agent log
+
+- 2026-09-14 orchestrator: Pack resolved: six-pack (explicit Protocol). Stage order per chunk: coder → cleaner → [architect if A*] → hardener → reviewer. End-of-roadmap qa always runs (six-pack). Starting F1.
+- 2026-09-14 coder: Created `pnpm-workspace.yaml` (`libs/*`, `examples/*`); set `libs/irpc/package.json`'s `@why-ts/core` dep to `workspace:*`; ran `pnpm install` (COREPACK_ENABLE_AUTO_PIN=0, to avoid an out-of-scope `packageManager` diff in root `package.json`). Evidence: `readlink -f libs/irpc/node_modules/@why-ts/core` → `/Users/kevin/Codes/why-ts/libs/core`. AC-W1a symlink assertion: PASS. Status: blocked on AC-W1a's second assertion (see below).
+- 2026-09-14 coder: `pnpm exec nx run-many -t lint test build --skip-nx-cache` FAILS after this chunk, in 2 root-caused, well-isolated ways: (1) `core:lint`, `cli:lint`, `irpc:lint` all break because pnpm's real per-package `node_modules` (created only once packages join the workspace) now contains real files (`tslib`, `minimist`, the `@why-ts/core` symlink for irpc) that ESLint's inferred `eslint .` (nx sets `cwd: libs/<pkg>`) linus into, since root `.eslintignore` is looked up relative to cwd only (no upward search) and was previously a no-op purely because `libs/*/node_modules` didn't exist pre-workspace. `irpc:lint` additionally hard-crashes because `libs/core/.eslintrc.json`'s `extends: ["../../.eslintrc.json"]` resolves to a nonexistent path when read through the `libs/irpc/node_modules/@why-ts/core` symlink. Fixing this needs `.eslintrc.json`/`.eslintignore` edits, which are outside F1's Files list and `.eslintrc.json` is explicitly Ask-human tier per `AGENTS.md`; roadmap's own `L1` chunk (Ask-human tier) is where that lands, so F1 cannot self-fix this within its Files scope. (2) `cli:build` fails with a `RangeError: Maximum call stack size exceeded` in TypeScript 5.5.4 — confirmed via isolated repro (full `git checkout`, delete `node_modules`, fresh `pnpm install`, no workspace file, no irpc edit) that this reproduces from a **completely unmodified checkout**, merely by running `pnpm install` with this sandbox's pnpm 10.18.2 (committed lockfile is `lockfileVersion: '6.0'`, i.e. authored by a much older pnpm; regenerating it changes dependency resolution enough to trigger this). This is a pre-existing environment/tooling gap (no `packageManager` pin), not introduced by F1's diff, but it does block literally validating "passes unchanged" in this sandbox. Escalating both to human/reviewer rather than expanding Files scope unilaterally. Status: in_progress, AC-W1a partially met (symlink: yes; lint/build parity: no, for the reasons above).
+- 2026-09-14 orchestrator: Independently reproduced both coder findings before escalating. (a) Built a git worktree at the pre-F1 commit, fresh `pnpm install`, `nx build cli` → identical `RangeError: Maximum call stack size exceeded`, confirming this is pre-existing and unrelated to F1's diff (sandbox Node 22.15.1 + pnpm 10.18.2 regenerating the old v6.0-format lockfile). (b) `git stash -u` F1's diff, confirmed `nx run-many -t lint` passes (warnings only) pre-F1; `git stash pop` to reapply F1's diff, reran lint → `core:lint`/`cli:lint` hit real errors and `irpc:lint` hard-crashes with `ESLint couldn't find the config "../../.eslintrc.json"` — a real regression caused by F1's real `node_modules` symlink. AC-W1a's "Nx passes unchanged" clause conflicts with what F1 can deliver inside its own Files list (fix is `.eslintrc.json`/`.eslintignore`, Ask-human tier, `L1`'s job). Status set to **blocked**. Stopping per Protocol's Acceptance-vs-evidence rule to ask the human rather than reinterpret AC-W1a myself.
+- 2026-09-14 orchestrator: User decision received: (a) narrow AC-W1a — lint parity deferred to `L1`, Nx build parity dropped from this roadmap's Acceptance entirely (tracked separately, see (b)); (b) spin up a separate agent using the create-roadmap skill to draft a fix roadmap for the pre-existing `cli:build` TypeScript RangeError / stale-lockfile issue. Applied (a) to this roadmap's Decisions + AC-W1a text (see above). Independently confirmed `pnpm exec nx run-many -t test --skip-nx-cache` passes cleanly (54+7 tests, 3 projects) under F1's diff, satisfying narrowed AC-W1a in full. Status reset to **in_progress**; resuming F1 pipeline at the cleaner stage (coder's implementation work stands, only the Acceptance bar it is judged against changed).
+- 2026-09-14 cleaner: Reviewed `pnpm-workspace.yaml`, `libs/irpc/package.json`, `pnpm-lock.yaml`; made no changes, implementation was already minimal. Re-verified `readlink -f libs/irpc/node_modules/@why-ts/core` → resolves to `libs/core`; `nx run-many -t test` passed 3/3 projects. Status: in_progress.
+- 2026-09-14 hardener: Ran 3 declared gates: (1) symlink resolution PASS; (2) `nx run-many -t test --skip-nx-cache` PASS (3/3 projects); (3) diff-scope check initially FAILED because running the declared test-gate command itself (via Corepack) injected a `packageManager` field into root `package.json` — out-of-scope drift, not part of F1's Files list or the coder/cleaner's actual work; reverted with `git checkout -- package.json`. Note for future chunks: any `pnpm exec nx`/`pnpm install` invocation in this sandbox risks Corepack auto-injecting `packageManager` into root `package.json` unless `COREPACK_ENABLE_AUTO_PIN=0` is set first; future chunks/hardeners should set that env var or revert the drift if it reappears, since root `package.json` is out of scope for most chunks in this roadmap. Status: in_progress.
+- 2026-09-14 reviewer: Independently re-verified from a fresh pass: `readlink -f libs/irpc/node_modules/@why-ts/core` → `libs/core` PASS; `COREPACK_ENABLE_AUTO_PIN=0 pnpm exec nx run-many -t test --skip-nx-cache` → 3/3 projects PASS; `pnpm exec nx run-many -t build --projects=core,irpc --skip-nx-cache` → both PASS (confirms the pre-existing `cli:build` gap is isolated, not spread by this chunk); `git status --porcelain` shows exactly `pnpm-workspace.yaml` (new), `libs/irpc/package.json` (single-line dep change), `pnpm-lock.yaml` (regenerated), and this roadmap file (F1-scoped text) — no `package.json` Corepack drift reappeared. Agent log confirmed coherent across all 7 stages (orchestrator, coder ×2, orchestrator ×2, cleaner, hardener) with no gaps. Implementor/Reviewer checklists and Acceptance (AC-W1a) confirmed consistent on the narrowed scope. Verdict: approve. Status: done.
+- 2026-09-14 orchestrator: Approved. Residual risks carried forward: pre-existing `cli:build` RangeError (separate fix roadmap being drafted); lint parity deferred to `L1`; Corepack `packageManager` auto-injection risk in this sandbox (use `COREPACK_ENABLE_AUTO_PIN=0`). Committing chunk now. Status: **approved**.
 
 ---
 

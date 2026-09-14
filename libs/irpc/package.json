@@ -5,7 +5,7 @@
   "homepage": "https://github.com/why-ts/why-ts",
   "dependencies": {
     "tslib": "^2.3.0",
-    "@why-ts/core": "0.0.1",
+    "@why-ts/core": "workspace:*",
     "mitt": "^3.0.1",
     "ts-pattern": "^5.2.0",
     "type-fest": "^4.23.0",
