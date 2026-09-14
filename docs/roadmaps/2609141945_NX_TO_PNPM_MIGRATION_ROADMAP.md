@@ -1,0 +1,418 @@
+# Replace Nx with pnpm + Changesets (migration) — Task Map
+
+## Goal (locked)
+
+`why-ts` is an Nx monorepo of 3 published TypeScript libraries (`@why-ts/cli`, `@why-ts/core`, `@why-ts/irpc`; `irpc` depends on `core`) plus one non-published example app (`examples/cli`). Stakes: production, packages public, published versions immutable. Replace all Nx tooling (build/test/lint/release/task-orchestration) with plain pnpm-workspace-based tooling: `pnpm-workspace.yaml` for real workspace linking, per-package `tsc` builds (no new bundler for the 3 libs), direct Vitest (Jest is already fully dead — confirmed no project has a `jest.config.*`; drop it), direct ESLint (drop the Nx module-boundary rule, confirmed a no-op today: `allow: [], onlyDependOnLibsWithTags: ["*"]`), and Changesets (`@changesets/cli`) replacing `nx release` for independent per-package versioning/changelogs. Preserve: independent per-package npm publishing under `@why-ts` scope, public access, existing package behavior/APIs, an equivalent CI + `scripts/verify.sh` signal.
+
+This roadmap covers migration only — it proves the new pipeline works end-to-end while Nx remains installed (unused) as a safety net. A separate roadmap (`NX_TEARDOWN`) physically deletes Nx once this is merged and baked in on `main`.
+
+**Out of scope:** package public APIs/behavior/inter-lib dependency graph (aside from wiring `@why-ts/core` via `workspace:*` instead of the current hardcoded `"0.0.1"` pin); renaming/moving source dirs; `publishConfig.access` (stays public); introducing a bundler (tsup/esbuild) for the 3 published libs; introducing Turborepo or any task-graph/cache tool (CI and local both run full `pnpm -r` every time, always, no affected-only fast path — explicitly accepted tradeoff, see Decisions); the real `npm publish` (stays human-only per `AGENTS.md`, unaffected); physically deleting Nx files/packages (that's the separate `NX_TEARDOWN` roadmap).
+
+## Decisions (locked)
+
+- Module format: unchanged. All three libs already set `"module": "commonjs"` explicitly in their `tsconfig.json` (verified in `libs/{cli,core,irpc}/tsconfig.json`), matching their `"type": "commonjs"` `package.json`. The plain-`tsc` build must keep emitting CJS — this is a preserve, not a migration.
+- Output layout: today's `@nx/js:tsc`-built `dist/libs/<pkg>/` preserves the `src/` segment (confirmed by the committed `package.json`'s `"main": "./src/index.js"`, `"typings": "./src/index.d.ts"`, which only resolve correctly under that layout). Chunk `B1` must first run `pnpm exec nx build core` once and inspect the real `dist/libs/core/` output as ground truth, then make the plain-`tsc` build match it bit-for-bit, rather than assuming the layout.
+- No `pnpm-workspace.yaml` exists today (confirmed) — the repo is currently a single flat pnpm package with 4 separate `package.json` files that Nx reads directly as metadata; `pnpm --filter`/`pnpm -r` do not work until `F1` creates it. This makes `F1` a hard predecessor of every other chunk in this roadmap except nothing — see Protocol dependency order.
+- Dependency resolution model: today neither build nor test reads a sibling's compiled output — both resolve `@why-ts/core` straight to TS source via `tsconfig.base.json` path aliases (confirmed: no `dependsOn` is set on the vite-inferred `test` target in `nx.json`). This roadmap keeps that model for tests (via a standalone `vite-tsconfig-paths` plugin, replacing Nx's `nxViteTsPaths()`), but introduces a **real** `pnpm` topological build order for `pnpm -r run build` once `libs/irpc/package.json` depends on `@why-ts/core` via `workspace:*` (pnpm's recursive `run` respects workspace dependency order by default) — this is a genuine (small, low-risk) behavior change from "builds are independent" to "irpc's build step runs after core's," and is called out explicitly rather than left implicit. Chunk `B2` must prove this causally (see Acceptance), not just cite pnpm's documented default.
+- Changesets dependent-bump cascade: accepted. Bumping `core` will trigger Changesets' default patch-bump + changelog entry for `irpc` (since it depends on `core` via `workspace:*`) to keep its declared dependency range correct; `cli` is unaffected (no internal dependency). This is standard Changesets behavior for workspace dependents, not a bug to suppress.
+- `workspace:*` must never reach a published tarball: Changesets/`pnpm publish` rewrite `workspace:*` to the real resolved semver before publish — this is pnpm's built-in behavior, not something this roadmap implements, but chunk `R2`'s dry-run must explicitly assert the _published_ `package.json` (fetched back from the local registry) contains a real version string, not the literal `workspace:*`.
+- `@nx/dependency-checks` ESLint rule (checks `package.json` deps match actual source imports; active today in all three `.eslintrc.json` — distinct from the no-op module-boundary rule): dropped, no replacement. Accepted minor coverage loss; revisit only if it causes a real incident (e.g. a missing dependency shipped in a release).
+- Verdaccio local registry: not a new safety net. Root `project.json` already has a `local-registry` target using the `@nx/js:verdaccio` executor as a manual dev tool (start a local registry, then manually exercise a real publish against it before trusting a real release). Chunk `R2` re-hosts that exact existing manual workflow on the plain `verdaccio` CLI; it is not inventing new CI-enforced verification.
+- `examples/cli` drops out of CI/build coverage: it is a non-published manual demo (no tests exist for it — confirmed, only `main.ts` + a `prompt-test/` dir). Chunk `E1` only needs to preserve its manual runnability (`node -r @swc-node/register` pattern, already used by its Nx `eval` target, so `@swc-node/register`/`@swc/core`/`@swc/helpers` are genuinely used and must be kept, not removed as "dead Nx weight"); it does not need a `build` script, so `pnpm -r --if-present run build` will silently skip it. This is an accepted reduction in CI surface (today Nx's `nx affected -t build` does bundle it via `@nx/esbuild`).
+- Rollback: no extra git tag is added. Adding a tag risks confusion with the git-tag-based release version history, which `docs/MENTAL_MODEL.md` marks human-only to change. Instead, every chunk lands as its own commit (already required by `execute-roadmap`'s protocol), so any chunk can be reverted independently if it causes problems after merge.
+- Decision record: this migration is recorded at `docs/decisions/0002-nx-to-pnpm-changesets.md` (`0001-cold-run.md` is the only existing record).
+- CI runtime tradeoff: CI moves from `nx affected` (changed-projects-only) to always running `pnpm -r` for lint/test/build on every push/PR. Accepted — at 3 packages the affected-only savings are judged negligible, and this removes an entire tool category (task-graph/caching) in service of the Goal.
+- Ask-human-tier chunks: `L1` (edits `.eslintrc.json`) and `C1` (edits `.github/workflows/ci.yml`) are explicitly Ask-human tier per `AGENTS.md`'s territory map. They are not "lower risk" just because their diffs are mechanical — flag them for explicit human sign-off before merge, distinct from the six-pack review that also applies to every chunk.
+
+## Acceptance
+
+### Feature: Workspace linking (checked at chunk F1)
+
+Scenario AC-W1a — real symlink, not a copy
+Given `pnpm-workspace.yaml` lists `libs/*` and `examples/*`, and `libs/irpc/package.json` declares `"@why-ts/core": "workspace:*"`
+When `pnpm install` runs from repo root
+Then `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core` (a symlink, not a hoisted copy), and Nx's own build/test/lint (`pnpm exec nx run-many -t lint test build`) still passes unchanged, proving this chunk is purely additive
+
+### Feature: Per-package build (checked at chunks B1/B2)
+
+Scenario AC-B1 — build output layout and module format match today's Nx build
+Given the ground-truth layout captured by running `pnpm exec nx build core` once before any change
+When `pnpm --filter @why-ts/core build` runs after migration
+Then `dist/libs/core/` contains exactly `src/index.js`, `src/index.d.ts`, `package.json` (unmodified `main`/`typings` fields, both resolving to real files), and `README.md`; `src/index.js` is CommonJS (`require`/`module.exports`, not `import`/`export`); `node -e "require('./dist/libs/core')"` succeeds from that directory
+
+Scenario AC-B2 — irpc build order is causally proven, not assumed
+Given `libs/irpc/package.json` depends on `@why-ts/core` via `workspace:*`
+When `pnpm -r run build` runs from repo root
+Then log output shows `core`'s build completing before `irpc`'s build starts; AND, as causal proof (not just citing pnpm's documented default behavior), a temporarily-induced build error in `core` causes `irpc`'s build to fail or never start when `pnpm -r run build` reruns — the induced error is then reverted; `irpc`'s own compiled output still resolves `@why-ts/core` types via the `tsconfig.base.json` path alias at compile time (unchanged from today), not via `core`'s `dist` output
+
+### Feature: Test parity (checked at chunk T2, before C1)
+
+Scenario AC-T1 — no silent test-count regression
+Given a recorded baseline: `pnpm exec nx run-many -t test` test-file and test-case counts per package, captured before chunk T1 starts and written into that chunk's Agent log
+When `pnpm --filter <pkg> test` runs after T1/T2, for each of `core`, `cli`, `irpc`
+Then the same test files are discovered and the same or greater test-case count passes (no test file silently excluded by the new Vitest config)
+
+### Feature: Lint consolidation (checked at chunk L1)
+
+Scenario AC-L1 — lint still catches real violations
+Given the root `.eslintrc.json` after dropping the Nx plugin/boundary rule/`@nx/dependency-checks`
+When a deliberately introduced lint violation (e.g. an unused import) is added to one library and `pnpm run lint` runs, then the violation is reverted
+Then the violation was caught (non-zero exit, rule violation referencing the introduced problem) before being reverted
+
+### Feature: Independent release via Changesets (checked at chunks R1–R3)
+
+Scenario AC-REL-VERSION — independent versioning with accepted dependent cascade
+Given a changeset that bumps only `core` (patch)
+When `pnpm changeset version` runs
+Then `core`'s `package.json` version and `CHANGELOG.md` update, `irpc`'s `package.json` version and `CHANGELOG.md` also update (dependency-range bump + changelog entry, per the accepted cascade decision above), and `cli`'s version/changelog are untouched
+
+Scenario AC-REL-PUBLISH — local-only publish proof, no workspace protocol leaks
+Given a local Verdaccio instance started via the plain `verdaccio` CLI (replacing the `@nx/js:verdaccio` executor)
+When `pnpm changeset publish` runs against that local registry only (never `registry.npmjs.org` — asserted via the registry URL actually used)
+Then `npm view @why-ts/core --registry <local>` returns the new version, the published `irpc` package's `package.json` (fetched back from the local registry) shows a real resolved semver for its `@why-ts/core` dependency — never the literal string `workspace:*` — and the throwaway version bumps are reverted afterward so no real package.json version changes as a side effect of this proof
+
+### Feature: CI parity (checked at chunk C1)
+
+Scenario AC-C1a — CI and verify.sh both run the full pnpm pipeline
+Given `.github/workflows/ci.yml` and `scripts/verify.sh` both call `pnpm -r --if-present run lint`, `test`, `build` (no `nx` invocation in either file)
+When a PR triggers the workflow, and separately `./scripts/verify.sh` runs locally
+Then both succeed for all three libraries
+
+Scenario AC-C1b — CI fails on a real regression
+Given a deliberately broken test (or lint violation, or build error) introduced on a throwaway branch
+When the CI workflow runs
+Then the workflow reports failure (non-zero exit) for the corresponding job; the throwaway breakage is then reverted
+
+### Feature: Example app stays runnable (checked at chunk E1)
+
+Scenario AC-E1 — examples/cli runs without Nx
+Given `examples/cli` has a plain `package.json` with a `start` script reusing its existing `node -r @swc-node/register src/main.ts` pattern
+When `pnpm --filter examples-cli start` runs
+Then the example CLI runs interactively as it does today, with no `nx`/`@nx/esbuild` reference anywhere in its config, and no `build` script exists (accepted per Decisions)
+
+### Feature: Docs reflect the new model (checked at chunks A1/R3)
+
+Scenario AC-M1 — no stale Nx-release language
+Given `docs/MENTAL_MODEL.md`'s two "must never change without a human" bullets about `nx release`/git-tag resolver, and `AGENTS.md`'s territory-map rows and "Debug loops"/"Done = evidence" sections referencing `nx`
+When both files are read after chunks `A1` and `R3` land
+Then `rg -i 'nx release|nx run-many|nx affected|git-tag' docs/MENTAL_MODEL.md AGENTS.md` returns zero hits outside `docs/decisions/0002-nx-to-pnpm-changesets.md`'s own historical framing
+
+## Protocol
+
+**Pack:** six-pack
+
+Justification: production stakes (public, immutable published npm versions); this migration changes the release mechanism itself, which `docs/MENTAL_MODEL.md` explicitly flags as requiring human sign-off to change; the R-series chunks change how real publish inputs (version bumps, tarball contents) are produced, which is exactly what hardener + end-of-roadmap qa stages exist to catch. Applied uniformly across all 12 chunks in this roadmap — no per-chunk pack downgrade, even for mechanically simple chunks (`F1`, `T1`, `T2`, `E1`), since `AGENTS.md`'s own DANGER-list framing treats this domain as high-rigor-by-default. The irreversible Nx-deletion step is deliberately excluded from this roadmap (see `NX_TEARDOWN`), keeping this roadmap's own worst-case blast radius at "revert a commit," not "point of no return."
+
+- Dependency order: `F1` has no dependencies and is a hard predecessor of every other chunk (no `pnpm-workspace.yaml` exists today, so `pnpm --filter`/`pnpm -r` do not work until `F1` lands). After `F1`: `T1`, `L1`, `B1`, `E1` have no dependencies on each other and may run in parallel. `T2` depends on `T1`. `B2` depends on `B1` AND `F1` (needs both the proven build recipe and the `workspace:*` wiring `F1` introduces). `R1` depends on `F1`. `R2` depends on `R1`, `B1`, `B2`. `R3` depends on `R2`. `C1` depends on `B1`, `B2`, `T1`, `T2`, `L1`. `A1` depends on `R3`, `C1`.
+- Code lives in the existing `why-ts` repo structure; no new top-level directories except `.changeset/`.
+- Verify commands: per-chunk, run the specific `pnpm --filter <pkg> <script>` named in that chunk's checklist; `./scripts/verify.sh` becomes the full-repo signal only once `C1` lands.
+- A standing reviewer-checklist item applies to every chunk: Acceptance scenarios in this roadmap are not edited by any chunk's implementation work; if a scenario proves unmeetable, escalate to the human rather than rewrite the scenario to fit.
+
+---
+
+## Human gate / Executable
+
+- [x] User sets this roadmap **Executable** (explicit approval) before implementors treat it as execute-ready.
+
+Approved 2026-09-14 by the user, explicitly ("mark the migration roadmap executable"), including the Decisions section as drafted (Changesets dependent-bump cascade accepted, `@nx/dependency-checks` dropped with no replacement, CI loses the affected-only fast path, `examples/cli` drops from CI build coverage). Status: **Executable**.
+
+## Task list
+
+### F1 — pnpm workspace foundation
+
+**Status:** pending
+
+**Depends on:** none
+
+**Files:** `pnpm-workspace.yaml` (new), `libs/irpc/package.json`, `pnpm-lock.yaml` (regenerated by `pnpm install`, not hand-edited)
+
+#### Implementor checklist
+
+- [ ] Create `pnpm-workspace.yaml` at repo root: `packages: ["libs/*", "examples/*"]`
+- [ ] Change `libs/irpc/package.json`'s `"@why-ts/core"` dependency from `"0.0.1"` to `"workspace:*"` (note: this touches `dependencies`, not the `version`/`publishConfig` fields AGENTS.md's territory map names as Ask-human)
+- [ ] Run `pnpm install` from repo root; do not hand-edit `pnpm-lock.yaml`
+- [ ] Verify `readlink -f libs/irpc/node_modules/@why-ts/core` resolves to `libs/core`
+- [ ] Confirm `pnpm exec nx run-many -t lint test build` still passes unchanged after this chunk (purely additive)
+
+#### Reviewer checklist
+
+- [ ] Confirm `pnpm-workspace.yaml` covers exactly `libs/*` and `examples/*`
+- [ ] Confirm `libs/irpc/package.json` has no other unrelated diff
+- [ ] Confirm AC-W1a passes and Nx is still fully functional after this chunk
+
+#### Agent log
+
+---
+
+### T1 — Vitest pilot (core)
+
+**Status:** pending
+
+**Depends on:** F1
+
+**Files:** root `package.json` (add `vite-tsconfig-paths` devDependency), `libs/core/vite.config.ts`, `libs/core/package.json`
+
+#### Implementor checklist
+
+- [ ] Add `vite-tsconfig-paths` as a root devDependency
+- [ ] In `libs/core/vite.config.ts`, replace `nxViteTsPaths()` (`@nx/vite/plugins/nx-tsconfig-paths.plugin`) with `tsconfigPaths()` (`vite-tsconfig-paths`)
+- [ ] Add `"test": "vitest run"` to `libs/core/package.json` scripts
+- [ ] Before changing anything, record baseline: `pnpm exec nx test core` test-file/test-case counts, written into this chunk's Agent log
+- [ ] Run `pnpm --filter @why-ts/core test`; confirm same test file(s)/case count as the baseline
+
+#### Reviewer checklist
+
+- [ ] Confirm no other package's config was touched
+- [ ] Confirm the baseline count was actually recorded in the Agent log, not asserted from memory
+- [ ] Confirm `core`'s Nx-driven test target still works too (Nx not yet removed)
+
+#### Agent log
+
+---
+
+### T2 — Vitest for cli and irpc
+
+**Status:** pending
+
+**Depends on:** T1
+
+**Files:** `libs/cli/vite.config.ts`, `libs/cli/package.json`, `libs/irpc/vite.config.ts`, `libs/irpc/package.json`
+
+#### Implementor checklist
+
+- [ ] Repeat T1's exact recipe for `cli` and `irpc`
+- [ ] Record and compare baseline test counts for both (same method as T1), written into this chunk's Agent log
+- [ ] Run `pnpm --filter @why-ts/cli test` and `pnpm --filter @why-ts/irpc test`, confirm parity
+- [ ] AC-T1 is now fully verifiable across all three packages
+
+#### Reviewer checklist
+
+- [ ] Confirm the recipe was applied identically to T1, no drift
+- [ ] Confirm test counts were recorded and compared for both packages, not just asserted
+
+#### Agent log
+
+---
+
+### L1 — Lint consolidation (Ask-human tier)
+
+**Status:** pending
+
+**Depends on:** F1
+
+**Files:** root `.eslintrc.json`, delete `libs/cli/.eslintrc.json`, `libs/core/.eslintrc.json`, `libs/irpc/.eslintrc.json`, `examples/cli/.eslintrc.json`, root `package.json`
+
+#### Implementor checklist
+
+- [ ] This chunk edits `.eslintrc.json`, an Ask-human-tier file per `AGENTS.md`'s territory map — flag explicitly for human sign-off before merge, do not rely on six-pack review alone
+- [ ] Rewrite root `.eslintrc.json`: drop `@nx` plugin, `@nx/enforce-module-boundaries` (confirmed no-op today), `@nx/dependency-checks` (accepted coverage loss per Decisions), `plugin:@nx/typescript`/`plugin:@nx/javascript` extends; replace with direct `@typescript-eslint/recommended` plus the project's existing custom rules
+- [ ] Delete the four per-package `.eslintrc.json` files
+- [ ] Add `"lint": "eslint libs examples --ext .ts"` (or equivalent) to root `package.json`
+- [ ] Introduce a deliberate lint violation (e.g. unused import) in a throwaway local diff, confirm `pnpm run lint` fails on it, then revert the throwaway violation
+
+#### Reviewer checklist
+
+- [ ] Confirm this chunk is flagged for explicit human sign-off (Ask-human tier), not silently merged
+- [ ] Confirm the introduced-violation test was actually performed and reverted cleanly
+- [ ] Confirm no rule beyond the two named Nx-specific ones was silently dropped
+
+#### Agent log
+
+---
+
+### B1 — tsc build pilot (core)
+
+**Status:** pending
+
+**Depends on:** F1
+
+**Files:** `libs/core/package.json`, `libs/core/tsconfig.lib.json`
+
+#### Implementor checklist
+
+- [ ] Run `pnpm exec nx build core` once (Nx still installed); record the exact contents/structure of `dist/libs/core/` as ground truth in this chunk's Agent log — do not assume the layout
+- [ ] Move that recorded `dist/libs/core/` aside before building the new way, to avoid false confidence from stale files
+- [ ] Set `libs/core/tsconfig.lib.json`'s `outDir` so a plain `tsc -p tsconfig.lib.json` reproduces the recorded layout (`dist/libs/core/src/index.js`, `.d.ts`, etc.)
+- [ ] Add `"build": "tsc -p tsconfig.lib.json && cp package.json README.md ../../dist/libs/core/"` (or equivalent) to `libs/core/package.json`
+- [ ] Run `pnpm --filter @why-ts/core build`; diff the result against the recorded ground truth (module format, file list, `main`/`typings` resolution)
+- [ ] Confirm `node -e "require('./dist/libs/core')"` succeeds from `dist/libs/core`
+
+#### Reviewer checklist
+
+- [ ] Confirm the ground-truth capture actually happened (evidence in Agent log)
+- [ ] Confirm CJS emit is unchanged (spot check `dist/libs/core/src/index.js` uses `require`/`exports`, not `import`/`export`)
+- [ ] Confirm `package.json`/`README.md` are copied unmodified
+
+#### Agent log
+
+---
+
+### B2 — tsc build for cli and irpc
+
+**Status:** pending
+
+**Depends on:** B1, F1
+
+**Files:** `libs/cli/package.json`, `libs/cli/tsconfig.lib.json`, `libs/irpc/package.json`, `libs/irpc/tsconfig.lib.json`
+
+#### Implementor checklist
+
+- [ ] Repeat B1's proven recipe for `cli` and `irpc`
+- [ ] Run `pnpm -r run build` from repo root; capture the log and confirm `core`'s build completes before `irpc`'s build starts
+- [ ] Causal proof (not just an assertion of pnpm's default behavior): temporarily introduce a build error in `core`, rerun `pnpm -r run build`, confirm `irpc`'s build fails or never starts, then revert the induced error
+- [ ] Confirm `irpc`'s compiled output still resolves `@why-ts/core` types via the `tsconfig.base.json` path alias at compile time, not via `core`'s `dist` output
+
+#### Reviewer checklist
+
+- [ ] Confirm the causal build-order proof was actually performed (log evidence), not just cited as "pnpm does this by default"
+- [ ] Confirm `cli`'s build (no internal dependency) is unaffected by ordering concerns
+
+#### Agent log
+
+---
+
+### R1 — Changesets setup
+
+**Status:** pending
+
+**Depends on:** F1
+
+**Files:** `.changeset/config.json` (new), root `package.json`
+
+#### Implementor checklist
+
+- [ ] `pnpm add -Dw @changesets/cli`
+- [ ] `pnpm changeset init`; configure `.changeset/config.json` for independent versioning (the default — do not enable `fixed`/`linked` groups), `"access": "public"`, `baseBranch: "main"`
+- [ ] Add root scripts: `"changeset": "changeset"`, `"version-packages": "changeset version"`, `"release": "changeset publish"`
+- [ ] Do NOT run `changeset publish` for real in this chunk (that's R2, local registry only)
+
+#### Reviewer checklist
+
+- [ ] Confirm independent-mode config (no `fixed`/`linked` groups accidentally introduced)
+- [ ] Confirm no publish was attempted in this chunk
+
+#### Agent log
+
+---
+
+### R2 — Verdaccio dry-run proof
+
+**Status:** pending
+
+**Depends on:** R1, B1, B2
+
+**Files:** root `package.json` (add `local-registry` script)
+
+#### Implementor checklist
+
+- [ ] Add `"local-registry": "verdaccio --config .verdaccio/config.yml --listen 4873 --storage tmp/local-registry/storage"` to root `package.json` (replaces the existing manual dev workflow currently provided by root `project.json`'s `@nx/js:verdaccio` target — not a new capability)
+- [ ] Start it: `pnpm run local-registry`
+- [ ] Add a throwaway changeset bumping `core` (patch), run `pnpm changeset version`, then `pnpm changeset publish` pointed at the local registry only (via `.npmrc` override or `--registry` flag); confirm `registry.npmjs.org` is never contacted
+- [ ] `npm view @why-ts/core --registry http://localhost:4873` returns the new version
+- [ ] Fetch the published `irpc` package.json from the local registry; confirm its `@why-ts/core` dependency is a real resolved semver, never the literal `workspace:*`
+- [ ] Revert the throwaway version bumps/changelog entries after the proof
+
+#### Reviewer checklist
+
+- [ ] Confirm the local-only registry constraint was actually enforced/verified
+- [ ] Confirm the `workspace:*` rewrite was checked in the actual fetched artifact
+- [ ] Confirm throwaway version bumps were reverted
+
+#### Agent log
+
+---
+
+### R3 — Decision record
+
+**Status:** pending
+
+**Depends on:** R2
+
+**Files:** `docs/decisions/0002-nx-to-pnpm-changesets.md` (new) — no other files; this chunk does not touch release code/config
+
+#### Implementor checklist
+
+- [ ] Write `docs/decisions/0002-nx-to-pnpm-changesets.md` following the existing `0001-cold-run.md` shape (Decision, rationale, evidence, rejected alternatives)
+- [ ] Record what changed (nx release → Changesets), what was preserved (independent per-package versioning, public access, immutable-once-published), and cite the R1/R2 evidence
+
+#### Reviewer checklist
+
+- [ ] Confirm this chunk touches only the one new file
+- [ ] Confirm it accurately reflects what R1/R2 actually proved
+
+#### Agent log
+
+---
+
+### C1 — CI + verify.sh (Ask-human tier)
+
+**Status:** pending
+
+**Depends on:** B1, B2, T1, T2, L1
+
+**Files:** `.github/workflows/ci.yml`, `scripts/verify.sh`
+
+#### Implementor checklist
+
+- [ ] This chunk edits `.github/workflows/ci.yml`, an explicit Ask-human-tier file per `AGENTS.md`'s territory map — flag explicitly for human sign-off before merge
+- [ ] Rewrite `ci.yml`: `pnpm install --frozen-lockfile`, then `pnpm -r --if-present run lint`, `pnpm -r --if-present run test`, `pnpm -r --if-present run build`; remove `nrwl/nx-set-shas`, the `nx affected` step, and the commented-out Nx Cloud lines
+- [ ] Rewrite `scripts/verify.sh` to call the same `pnpm -r --if-present run lint test build` commands instead of `pnpm exec nx run-many`
+- [ ] Note inline (comment or Agent log) that `examples/cli` intentionally has no `build` script (see Decisions) so `--if-present` silently skips it — accepted, not a bug
+- [ ] Push a throwaway branch with a deliberately broken test/lint/build, confirm CI reports failure, then remove the throwaway breakage
+
+#### Reviewer checklist
+
+- [ ] Confirm this chunk is flagged for explicit human sign-off (Ask-human tier)
+- [ ] Confirm the negative-case CI failure test was actually run (link the failed workflow run)
+- [ ] Confirm `scripts/verify.sh` and `ci.yml` agree, beyond the documented full-vs-affected tradeoff being dropped entirely
+
+#### Agent log
+
+---
+
+### E1 — examples/cli off Nx
+
+**Status:** pending
+
+**Depends on:** F1
+
+**Files:** `examples/cli/package.json` (new), delete `examples/cli/project.json`
+
+#### Implementor checklist
+
+- [ ] Add a minimal `examples/cli/package.json` (`"private": true`, name e.g. `examples-cli`) with `"start": "node -r @swc-node/register src/main.ts"` (reusing the exact loader already used by the Nx `eval` target — `@swc-node/register` is a real, used dependency, not dead Nx weight)
+- [ ] Delete `examples/cli/project.json`
+- [ ] Confirm `pnpm --filter examples-cli start` runs the CLI example interactively, matching today's `nx run example-cli:eval` behavior
+- [ ] Confirm no `build` script is added (accepted: this app drops out of CI/build coverage per Decisions)
+
+#### Reviewer checklist
+
+- [ ] Confirm the example runs identically to today's manual `eval` workflow
+- [ ] Confirm no stray `@nx/esbuild`-only config remains referencing this app
+
+#### Agent log
+
+---
+
+### A1 — AGENTS.md and MENTAL_MODEL.md alignment
+
+**Status:** pending
+
+**Depends on:** R3, C1
+
+**Files:** `AGENTS.md`, `docs/MENTAL_MODEL.md`
+
+#### Implementor checklist
+
+- [ ] In `docs/MENTAL_MODEL.md`, replace the `nx release`/git-tag-resolver framing under "Why this shape" and "What must never change without a human deciding it" with the Changesets equivalent (independent versioning via Changesets preserved as the locked policy; the mechanism changed with human approval, recorded at `docs/decisions/0002-nx-to-pnpm-changesets.md`)
+- [ ] In `AGENTS.md`: update territory-map rows referencing `nx.json`/`nx release`/`.verdaccio/config.yml` to reference `pnpm-workspace.yaml`, `.changeset/config.json`, and the plain `verdaccio` script; update "Debug loops"'s `pnpm exec nx test <project>` example to `pnpm --filter <project> test`; update "Done = evidence"'s description of `scripts/verify.sh` to describe the new `pnpm -r` commands
+- [ ] `rg -i 'nx release|nx run-many|nx affected|git-tag' docs/MENTAL_MODEL.md AGENTS.md` returns zero hits outside `docs/decisions/0002-*.md`'s own historical framing
+
+#### Reviewer checklist
+
+- [ ] Confirm `AGENTS.md`'s Never-tier rows (`git push --force`, `npm publish`, `git tag -d/-f`) are untouched — this chunk only updates the Nx-specific rows
+- [ ] Confirm the "policy preserved, mechanism changed" framing is stated clearly, not just deleted
+
+#### Agent log
+
+---

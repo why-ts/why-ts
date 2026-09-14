@@ -7,7 +7,7 @@ here.
 
 ## Ready
 
-_(none yet)_
+- `2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md` — Executable (approved by user 2026-09-14).
 
 ## Not Ready
 
@@ -15,8 +15,7 @@ _(none yet)_
 
 ## Blocked
 
-_(none yet — hard blocks only; human-only steps go under Human actions
-needed, below)_
+- `2609141945_NX_TEARDOWN_ROADMAP.md` — hard block: Blocked on NX_TO_PNPM_MIGRATION roadmap being fully executed, merged to `main`, and green in real CI on `main` at least once post-merge (human judgment call on timing).
 
 ## Human actions needed
 
@@ -28,6 +27,6 @@ auth for a release. Not for interactive create-roadmap Q&A.)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent | Roadmap | Chunk | Branch | Since |
-| --- | --- | --- | --- | --- |
-| _(none yet)_ | | | | |
+| Agent        | Roadmap | Chunk | Branch | Since |
+| ------------ | ------- | ----- | ------ | ----- |
+| _(none yet)_ |         |       |        |       |
