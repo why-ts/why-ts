@@ -6,7 +6,8 @@
     "lint": "eslint libs examples --ext .ts",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "local-registry": "verdaccio --config .verdaccio/config.yml --listen 4873"
   },
   "private": true,
   "dependencies": {
