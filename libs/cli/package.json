@@ -27,6 +27,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json && cp package.json README.md ../../dist/libs/cli/"
+    "build": "tsc -p tsconfig.lib.json && cp package.json README.md ../../dist/libs/cli/",
+    "test": "vitest run"
   }
 }
