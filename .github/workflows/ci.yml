@@ -20,7 +20,13 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 8
+          # pnpm-lock.yaml is lockfileVersion '9.0' (written by pnpm 9+;
+          # confirmed pnpm 10.18.2 locally). pnpm 8 cannot read a v9
+          # lockfile at all ("Ignoring not compatible lockfile" ->
+          # ERR_PNPM_NO_LOCKFILE with --frozen-lockfile) -- discovered via a
+          # real failing GitHub Actions run on this chunk's throwaway PR,
+          # not assumed. Bumped to match.
+          version: 10
 
       # Cache node_modules
       - uses: actions/setup-node@v4
