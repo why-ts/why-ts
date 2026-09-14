@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "matcher": "bash|powershell",
+        "bash": "node .github/hooks/scripts/deny-dangerous.js",
+        "powershell": "node .github/hooks/scripts/deny-dangerous.js",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

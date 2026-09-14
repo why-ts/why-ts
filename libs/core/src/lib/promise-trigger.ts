@@ -1,5 +1,3 @@
-import { get } from 'http';
-
 export enum PromiseStatus {
   Pending,
   Resolved,

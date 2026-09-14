@@ -1,0 +1,53 @@
+{
+  // why-ts harness mechanical gate for Zed's native Agent (docs/AGENTS.md).
+  // Source: https://zed.dev/docs/ai/tool-permissions (fetched during harness
+  // creation). `always_deny` cannot be overridden by `always_allow` or by a
+  // global "allow" default — see AGENTS.md Territory Map for the Never tier
+  // this file enforces.
+  //
+  // Coverage note: this gate is confirmed for Zed's own native Agent. Zed's
+  // docs state ACP tool-permission forwarding to External Agents (Copilot,
+  // Cursor run inside Zed) "may apply" but is not guaranteed — see
+  // .cursor/hooks.json and .github/hooks/ for the mechanisms that gate those
+  // tools directly, regardless of how they are launched.
+  "agent": {
+    "tool_permissions": {
+      "default": "confirm",
+      "tools": {
+        "terminal": {
+          "default": "confirm",
+          "always_allow": [
+            { "pattern": "^pnpm exec nx (run-many|run)\\b" },
+            { "pattern": "^pnpm (install|exec)\\b" },
+            { "pattern": "^git (status|log|diff|branch|show)\\b" }
+          ],
+          "always_deny": [
+            // Never: force-push (history rewrite on a public repo)
+            { "pattern": "git\\s+push\\s+.*(--force|-f\\b)" },
+            // Never: publishing packages directly (public, irreversible)
+            { "pattern": "\\b(npm|pnpm|yarn)\\s+publish\\b" },
+            // Never: nx release performs version bump + tag + publish
+            { "pattern": "\\bnx\\s+release\\b" },
+            // Never: tag deletion/force-move (nx release uses tags as the
+            // version source of truth)
+            { "pattern": "git\\s+tag\\s+.*(-d|--delete|-f\\b|--force)" },
+            { "pattern": "git\\s+push\\s+.*(--delete|:refs/tags)" }
+          ],
+          "always_confirm": [
+            // Ask human: plain push to main and any tag creation are
+            // reversible-ish but still worth a pause before a production repo.
+            { "pattern": "^git\\s+push\\b" },
+            { "pattern": "^git\\s+tag\\b" }
+          ]
+        },
+        "delete_path": {
+          "default": "confirm",
+          "always_confirm": [
+            { "pattern": "(^|/)dist(/|$)" },
+            { "pattern": "\\.git(/|$)" }
+          ]
+        }
+      }
+    }
+  }
+}
