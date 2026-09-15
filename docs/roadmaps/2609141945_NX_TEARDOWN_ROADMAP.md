@@ -17,9 +17,9 @@ Physically remove all remaining Nx packages and config files from `why-ts`, now 
 ### Feature: Nx fully removed
 
 Scenario AC-N1 — enumerated removal, not prose
-  Given the literal removal list in `X1`'s checklist (`nx.json`; every remaining `project.json`; `jest.config.ts`; `jest.preset.js`; every `@nx/*`, `nx`, and Jest-stack devDependency named in `X1`)
-  When `X1` completes and `pnpm install` reruns
-  Then `rg -i '"nx"|@nx/|"jest"' package.json libs/*/package.json examples/*/package.json` returns zero hits, `pnpm ls -r --depth 0` lists no Nx or Jest package, and `./scripts/verify.sh` passes
+Given the literal removal list in `X1`'s checklist (`nx.json`; every remaining `project.json`; `jest.config.ts`; `jest.preset.js`; every `@nx/*`, `nx`, and Jest-stack devDependency named in `X1`)
+When `X1` completes and `pnpm install` reruns
+Then `rg -i '"nx"|@nx/|"jest"' package.json libs/*/package.json examples/*/package.json` returns zero hits, `pnpm ls -r --depth 0` lists no Nx or Jest package, and `./scripts/verify.sh` passes
 
 ## Protocol
 
@@ -34,7 +34,7 @@ Justification: single irreversible chunk, no automated rollback path once merged
 
 ## Human gate / Executable
 
-- [ ] User sets this roadmap **Executable** (explicit approval) before implementors treat it as execute-ready. This roadmap additionally requires the human to confirm the `NX_TO_PNPM_MIGRATION` roadmap's bake-in condition (see Decisions) is met — Executable on this roadmap must not be granted before that.
+- [x] User sets this roadmap **Executable** (explicit approval) before implementors treat it as execute-ready. This roadmap additionally requires the human to confirm the `NX_TO_PNPM_MIGRATION` roadmap's bake-in condition (see Decisions) is met — Executable on this roadmap must not be granted before that.
 
 ## Task list
 
