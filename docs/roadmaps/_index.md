@@ -33,9 +33,9 @@ _(none)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent    | Roadmap | Chunk | Branch | Since |
-| -------- | ------- | ----- | ------ | ----- |
-| _(none)_ |         |       |        |       |
+| Agent        | Roadmap                             | Chunk | Branch | Since      |
+| ------------ | ----------------------------------- | ----- | ------ | ---------- |
+| orchestrator | `2609141945_NX_TEARDOWN_ROADMAP.md` | X1    | main   | 2026-09-16 |
 
 ## Orchestrator Notes (2026-09-15)
 

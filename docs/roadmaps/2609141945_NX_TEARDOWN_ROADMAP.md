@@ -40,7 +40,7 @@ Justification: single irreversible chunk, no automated rollback path once merged
 
 ### X1 — Final Nx removal
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** external — `NX_TO_PNPM_MIGRATION` roadmap fully executed, merged to `main`, and green in real CI on `main` at least once post-merge
 
@@ -48,21 +48,28 @@ Justification: single irreversible chunk, no automated rollback path once merged
 
 #### Implementor checklist
 
-- [ ] Confirm the migration roadmap's chunks are all merged and CI is green on `main` before starting
-- [ ] Delete `nx.json`, all `project.json` files (root + 3 libs — `examples/cli/project.json` was already removed in the migration roadmap's `E1`)
-- [ ] Delete `jest.config.ts`, `jest.preset.js`
-- [ ] Remove from root `package.json`: `@nx/esbuild`, `@nx/eslint`, `@nx/eslint-plugin`, `@nx/jest`, `@nx/js`, `@nx/node`, `@nx/vite`, `@nx/web`, `@nx/workspace`, `nx`, `jest`, `jest-environment-jsdom`, `jest-environment-node`, `ts-jest`, `@swc/jest`, `@types/jest`; keep `@swc-node/register`, `@swc/core`, `@swc/helpers` (used by `examples/cli`)
-- [ ] Check whether `ts-node` is invoked anywhere (`rg ts-node`); remove from devDependencies if genuinely unused
-- [ ] Run `pnpm install`; run `pnpm -r --if-present run lint test build` and `./scripts/verify.sh`; both must pass
-- [ ] Delete the local `.nx/` cache directory if present
+- [x] Confirm the migration roadmap's chunks are all merged and CI is green on `main` before starting
+- [x] Delete `nx.json`, all `project.json` files (root + 3 libs — `examples/cli/project.json` was already removed in the migration roadmap's `E1`)
+- [x] Delete `jest.config.ts`, `jest.preset.js`
+- [x] Remove from root `package.json`: `@nx/esbuild`, `@nx/eslint`, `@nx/eslint-plugin`, `@nx/jest`, `@nx/js`, `@nx/node`, `@nx/vite`, `@nx/web`, `@nx/workspace`, `nx`, `jest`, `jest-environment-jsdom`, `jest-environment-node`, `ts-jest`, `@swc/jest`, `@types/jest`; keep `@swc-node/register`, `@swc/core`, `@swc/helpers` (used by `examples/cli`)
+- [x] Check whether `ts-node` is invoked anywhere (`rg ts-node`); remove from devDependencies if genuinely unused
+- [x] Run `pnpm install`; run `pnpm -r --if-present run lint test build` and `./scripts/verify.sh`; both must pass
+- [x] Delete the local `.nx/` cache directory if present
 
 #### Reviewer checklist
 
-- [ ] Confirm `rg -i '"nx"|@nx/|"jest"' package.json libs/*/package.json examples/*/package.json` returns zero hits
-- [ ] Confirm `pnpm ls -r --depth 0` lists no Nx or Jest package
-- [ ] Confirm `@swc-node/register`/`@swc/core`/`@swc/helpers` were deliberately kept
-- [ ] Confirm full `./scripts/verify.sh` is green after removal
+- [x] Confirm `rg -i '"nx"|@nx/|"jest"' package.json libs/*/package.json examples/*/package.json` returns zero hits
+- [x] Confirm `pnpm ls -r --depth 0` lists no Nx or Jest package
+- [x] Confirm `@swc-node/register`/`@swc/core`/`@swc/helpers` were deliberately kept
+- [x] Confirm full `./scripts/verify.sh` is green after removal
 
 #### Agent log
+
+- 2026-09-16 orchestrator: Pack: six-pack (explicit Protocol). Starting X1 — dispatching coder.
+- 2026-09-16 coder: Deleted nx.json, root/libs project.json (cli, core, irpc), jest.config.ts, jest.preset.js, local .nx/ cache. Edited root package.json: removed all @nx/_ deps, nx, jest, jest-environment-jsdom, jest-environment-node, ts-jest, @swc/jest, @types/jest, and ts-node (grep showed ts-node only referenced in README usage examples, not invoked by any script — genuinely unused). Kept @swc-node/register, @swc/core, @swc/helpers per locked decision. Checked .eslintrc.json — no @nx/eslint-plugin references found, no change needed. No .nxignore file existed. Evidence: `pnpm install` succeeded (429 packages removed, only pre-existing @swc/core peer-dep warning unrelated to this change); `./scripts/verify.sh` green (lint 0 errors/38 pre-existing warnings, all tests pass, all builds pass); `grep -inE '"nx"|@nx/|"jest"' package.json libs/_/package.json examples/\*/package.json`and`pnpm ls -r --depth 0 | grep -iE 'nx|jest'` both zero hits, matching AC-N1. Status left in_progress for reviewer.
+- 2026-09-16 cleaner: Checked `.eslintrc.json`, `tsconfig*.json`, `.github/workflows/*.yml`, `scripts/*.sh`, root/lib/example `README.md` files, `pnpm-lock.yaml` — zero Nx/Jest references in any, no change needed there. Found one leftover cruft item: `.gitignore` still had `.nx/cache` and `.nx/workspace-data` entries for the now-deleted `.nx/` directory; removed both lines (behavior-preserving, dead ignore rules for a tool no longer present). Left `docs/decisions/`, `docs/notes/`, and `docs/playbooks/publish.md`'s Nx mentions untouched — historical framing / separately-tracked residual, out of scope per roadmap. Re-ran `./scripts/verify.sh` after the `.gitignore` edit: green (lint 0 errors/38 pre-existing warnings, all tests pass, all builds pass). Status: in_progress, handing to hardener.
+- 2026-09-16 hardener: Ran declared verify fresh: `pnpm install` (up to date), `pnpm -r --if-present run lint test build` (exit 0), `./scripts/verify.sh` (exit 0, lint 0 errors/38 pre-existing warnings, all tests pass, all builds pass). AC-N1 checks: zero Nx/Jest hits in package.json files (used `grep -inE` — `rg` not installed in this environment); `pnpm ls -r --depth 0` shows no Nx/Jest package; `@swc-node/register`/`@swc/core`/`@swc/helpers` present as kept deps. Confirmed nx.json/project.json/jest.config.ts/jest.preset.js/.nx all absent. Flagged one risk for reviewer: `pnpm -r --if-present run lint test build` is a silent no-op (root excluded from `-r` by default, no workspace package has a `lint` script) — verify.sh's own comment documents this; does not affect correctness since verify.sh independently runs lint/test/build correctly, but the Protocol's declared command doesn't add coverage beyond verify.sh. Status: in_progress, handing to reviewer.
+- 2026-09-16 reviewer: Verdict: approve. Independently inspected `git status`/`git diff`: deletions are exactly `nx.json`, root + `libs/{cli,core,irpc}/project.json`, `jest.config.ts`, `jest.preset.js`; edits are `package.json` (removes every `@nx/*` dep, `nx`, `jest`/`jest-environment-*`/`ts-jest`/`@swc/jest`/`@types/jest`/`ts-node`, and the `"nx": {...}` block; keeps `@swc-node/register`, `@swc/core`, `@swc/helpers` per locked decision — confirmed present at lines 27-29), `.gitignore` (drops dead `.nx/cache`/`.nx/workspace-data` entries — `.nx/` confirmed absent from disk, behavior-preserving), `pnpm-lock.yaml`, and `_index.md` (Claimed-by row, in scope for solo-project convention). Ran own AC-N1 checks: `grep -inE '"nx"|@nx/|"jest"' package.json libs/*/package.json examples/*/package.json` — zero hits (exit 1); `pnpm ls -r --depth 0 | grep -iE 'nx|jest'` — zero hits (exit 1); `find . -iname nx.json -o -iname project.json -o -iname jest.config.ts -o -iname jest.preset.js` (excl. node_modules) — zero hits. Ran full `./scripts/verify.sh` myself fresh: exit 0, lint 0 errors/38 pre-existing warnings, all test suites pass (libs/core has no test files, pre-existing), all builds pass — matches coder/cleaner/hardener's reports exactly. Hardener's residuals weighed: (1) `pnpm -r --if-present run lint test build` no-op — cosmetic Protocol-wording gap, `verify.sh` is the actual gate and is correctly green, does not block AC-N1 which explicitly names `./scripts/verify.sh` as the pass condition; (2) `rg` unavailable, `grep -inE` is semantically equivalent for this check; (3) 38 pre-existing lint warnings — unrelated to this chunk, out of scope; (4) `libs/core` zero test files — pre-existing, not introduced by this chunk; (5) out-of-scope Nx mentions in docs/decisions and docs/notes correctly left untouched per roadmap's Out of scope clause. None block acceptance. Checked off all 4 reviewer checklist items. Residual risks to carry forward (informational only, none blocking): the four hardener-flagged items above, plus note that Protocol's declared verify command wording should eventually be corrected to match what `verify.sh` actually does (cosmetic, not a correctness gap).
+- 2026-09-16 orchestrator: Reviewer approved X1. All AC-N1 evidence confirmed (zero Nx/Jest hits, verify.sh green, @swc-node/register/@swc/core/@swc/helpers kept). Residual risks: Protocol's declared `pnpm -r --if-present run lint test build` is a wording no-op (verify.sh is the real gate, correctly green); `rg` unavailable in sandbox (grep used, equivalent); 38 pre-existing lint warnings; libs/core has zero test files — none block acceptance. Setting Status: approved. Committing chunk + roadmap together.
 
 ---
