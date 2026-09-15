@@ -425,7 +425,7 @@ Status: **approved** for `TS1` as literally scoped and tested; residual risks ab
 
 ### TS2 — Pin `packageManager` to stop Corepack auto-inject drift
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** TS1
 
@@ -433,28 +433,44 @@ Status: **approved** for `TS1` as literally scoped and tested; residual risks ab
 
 #### Implementor checklist
 
-- [ ] Add `"packageManager": "pnpm@10.18.2+sha512.<hash>"` to root
+- [x] Add `"packageManager": "pnpm@10.18.2+sha512.<hash>"` to root
       `package.json`, using the exact value Corepack computes for the pnpm
       version already resolving this workspace's lockfile (do not invent an
-      arbitrary version/hash)
-- [ ] Run `pnpm install` from a clean state (no env override needed now);
+      arbitrary version/hash) — **already present as pre-existing,
+      uncommitted Corepack auto-inject drift** (per this roadmap's own
+      Protocol note); verified rather than re-added: decoded the pnpm
+      10.18.2 npm registry `dist.integrity` (base64 sha512) to hex via
+      `python3 -c "import base64; ..."` →
+      `9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd`,
+      byte-for-byte identical to the hash already in `package.json`
+- [x] Run `pnpm install` from a clean state (no env override needed now);
       confirm Corepack no longer prints "doesn't define a 'packageManager'
-      field" and does not further modify `package.json`
-- [ ] Re-run `NX_SOCKET_DIR=/tmp/nx-ts2 pnpm exec nx build cli --skip-nx-cache`
+      field" and does not further modify `package.json` — ran plain
+      `pnpm install` (no `COREPACK_ENABLE_AUTO_PIN` override); output:
+      `Lockfile is up to date... Already up to date`, no Corepack warning;
+      `git --no-pager diff --stat package.json` identical before/after
+      (still just the 1 pre-existing added line, nothing further)
+- [x] Re-run `NX_SOCKET_DIR=/tmp/nx-ts2 pnpm exec nx build cli --skip-nx-cache`
       and `NX_SOCKET_DIR=/tmp/nx-ts2 pnpm exec nx run-many -t build test --skip-nx-cache`;
-      confirm still green
-- [ ] Confirm `pnpm-lock.yaml` has no dependency-resolution diff from this
-      chunk alone (a `packageManager` pin should not change resolution)
+      confirm still green — both succeeded; `run-many` test counts unchanged
+      (`core` 0, `cli` 54/54, `irpc` 7/7), matching TS1's post-fix baseline
+- [x] Confirm `pnpm-lock.yaml` has no dependency-resolution diff from this
+      chunk alone (a `packageManager` pin should not change resolution) —
+      `git --no-pager diff --stat pnpm-lock.yaml` empty
 
 #### Reviewer checklist
 
-- [ ] Confirm the pinned version matches the pnpm version this sandbox/CI
+- [x] Confirm the pinned version matches the pnpm version this sandbox/CI
       actually uses (10.18.2), not an arbitrary choice
-- [ ] Confirm `pnpm-lock.yaml` diff (if any) is unrelated/empty
-- [ ] Confirm this doesn't conflict with an assumption in the migration
+- [x] Confirm `pnpm-lock.yaml` diff (if any) is unrelated/empty
+- [x] Confirm this doesn't conflict with an assumption in the migration
       roadmap's later chunks (e.g. `C1`/CI) — flag rather than guess if
       unsure
 
 #### Agent log
 
----
+2026-09-15 agent (coder): Depends-on `TS1` confirmed approved and committed (`4828e36`). Found root `package.json` already carries an **uncommitted** `packageManager` field (`pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd`), per this roadmap's own pre-flagged Protocol note (Corepack auto-inject drift from earlier, unrelated sandbox activity). Verified rather than blindly trusted: `pnpm --version` → `10.18.2` (the version actually installed in this sandbox); `npm view pnpm@10.18.2 dist.integrity` → base64 sha512, decoded to hex via a one-line Python script → byte-for-byte identical to the hash already present. Ran a cold `pnpm install` (no env override) — no Corepack "doesn't define a 'packageManager' field" warning, `package.json` unchanged by the install. Re-ran `NX_SOCKET_DIR=/tmp/nx-ts2 pnpm exec nx build cli --skip-nx-cache` (success) and `NX_SOCKET_DIR=/tmp/nx-ts2b pnpm exec nx run-many -t build test --skip-nx-cache` (`Successfully ran targets build, test for 3 projects`; test counts unchanged: core 0, cli 54/54, irpc 7/7). `git --no-pager diff --stat pnpm-lock.yaml` empty — no resolution diff from the pin alone. Checked the migration roadmap (`2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md`) for conflicting assumptions about `packageManager`/CI in later chunks: found only prior notes describing the _same_ auto-inject drift as an already-known, already-flagged risk to revert-if-unwanted in other chunks — no chunk assumes the field's _absence_, no conflict found. Did not touch that roadmap file. `./scripts/verify.sh` re-run clean (exit 0) with this change in place. Status: implementation complete, all checklist items satisfied, no residual risk beyond what TS1 already carries forward.
+
+2026-09-15 agent (reviewer, independent pass): Verdict: **approve**. Independently re-verified rather than trusting the coder's summary: re-ran `pnpm --version` (10.18.2, matches pin) and re-derived the hex hash from `npm view pnpm@10.18.2 dist.integrity` myself — identical match. Re-ran `git --no-pager diff --stat pnpm-lock.yaml` (empty) and `git --no-pager diff package.json` (shows only the single `packageManager` line, consistent with the coder's claim and with this roadmap's own pre-existing-drift note — not a fabricated addition). Confirmed no `version`/`publishConfig` fields touched (this pin is a distinct, allowed field per this roadmap's Decisions, which explicitly treats root `package.json`'s `packageManager` field as Open tier, not Ask-human/Never). Confirmed no conflict with the migration roadmap's later chunks by reading its `packageManager`/Corepack mentions directly — all describe the same known drift as a risk to guard against, none assume its absence. Residual risks: **none new** — this chunk is a clean, low-risk pin of an already-present, already-verified-correct value; it inherits TS1's residual risks (see TS1's Agent log) but does not add any of its own.
+
+Status: **approved**.
