@@ -1,5 +1,4 @@
 import {
-  Command,
   CommandOutput,
   ExtendedOptions,
   Handler,
@@ -23,24 +22,21 @@ import {
 } from './types';
 import { extractAliases, noop } from './util';
 
-export function command(metadata: Metadata = {}): Command {
+export function command(metadata: Metadata = {}) {
   return new CommandImpl(noop, {}, metadata);
 }
 
 class CommandImpl<
   Options extends GenericOptions = EmptyObject,
-  HandlerResult = void
-> implements Command<Options, HandlerResult>
-{
+  HandlerResult = void,
+> {
   constructor(
     private handler: Handler<Options, HandlerResult>,
     public readonly options: Options,
-    public readonly metadata: Metadata
+    public readonly metadata: Metadata,
   ) {}
 
-  meta(
-    metadata: Metadata | ((current: Metadata) => Metadata)
-  ): Command<Options, HandlerResult> {
+  meta(metadata: Metadata | ((current: Metadata) => Metadata)) {
     if (typeof metadata === 'function') metadata = metadata(this.metadata);
 
     return new CommandImpl(this.handler, this.options, {
@@ -49,10 +45,7 @@ class CommandImpl<
     });
   }
 
-  option<N extends string, O extends Option>(
-    name: Aliasable<N>,
-    option: O
-  ): Command<ExtendedOptions<Options, N, O>, HandlerResult> {
+  option<N extends string, O extends Option>(name: Aliasable<N>, option: O) {
     const { name: n, aliases } = extractAliases(name);
 
     return new CommandImpl(
@@ -61,24 +54,22 @@ class CommandImpl<
         ...this.options,
         [n]: { aliases, value: option },
       } as ExtendedOptions<Options, N, O>,
-      this.metadata
+      this.metadata,
     );
   }
 
-  handle<R>(
-    handler: HandlerReplacement<Options, HandlerResult, R>
-  ): Command<Options, R> {
+  handle<R>(handler: HandlerReplacement<Options, HandlerResult, R>) {
     return new CommandImpl(
       (input: HandlerInput<ParsedArgsFromOptions<Options>>) =>
         handler(input, this.handler),
       this.options,
-      this.metadata
+      this.metadata,
     );
   }
 
   async run(
     argv: string[],
-    config?: RuntimeConfig
+    config?: RuntimeConfig,
   ): Promise<CommandOutput<Options, HandlerResult>> {
     const {
       logger = defaultLogger,

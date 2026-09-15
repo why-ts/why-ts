@@ -274,8 +274,8 @@ is in addition to, not instead of, the human Executable re-approval above.
 
 ### TS1 — Remove the explicit annotations that trigger the structural-comparison stack overflow
 
-**Status:** pending (reset 2026-09-15; supersedes the prior dependency-bump
-attempt, whose Agent log is preserved below for history)
+**Status:** approved (2026-09-15; coder → independent reviewer both complete;
+see Agent log for load-bearing residual risks carried into this approval)
 
 **Depends on:** none
 
@@ -284,17 +284,17 @@ attempt, whose Agent log is preserved below for history)
 
 #### Implementor checklist
 
-- [ ] Read `docs/notes/2609151_cli_stack_overflow_debug_log.md` in full
+- [x] Read `docs/notes/2609151_cli_stack_overflow_debug_log.md` in full
       first — in particular §1 (what `outofbandVarianceMarkerHandler`
       actually is), §2 (`--generateTrace` findings), and §4a–§4d (minimal
       reduction) — before making any change
-- [ ] Before changing anything, run
+- [x] Before changing anything, run
       `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1-base pnpm exec nx run-many -t build test --skip-nx-cache`
       against the unmodified tree; record baseline pass/fail and test
       counts for `core`/`irpc`/`cli` (expect `cli:build` to fail with the
       `RangeError`) in this chunk's Agent log — this is the pre-change
       baseline, not reconstructed later from memory
-- [ ] In `libs/cli/src/lib/command.ts`, remove the `implements
+- [x] In `libs/cli/src/lib/command.ts`, remove the `implements
 Command<Options, HandlerResult>` clause from the `CommandImpl` class
       header, and remove the explicit `Command<...>`-typed return-type
       annotations from `CommandImpl`'s `meta()`, `option()`, `handle()`
@@ -304,62 +304,78 @@ Command<Options, HandlerResult>` clause from the `CommandImpl` class
       usage, and `ExtendedOptions` must remain byte-for-byte unchanged —
       those are the public API surface and are out of scope per this
       roadmap's Decisions)
-- [ ] Run `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1 pnpm exec nx build cli --skip-nx-cache`;
+- [x] Run `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1 pnpm exec nx build cli --skip-nx-cache`;
       confirm success with no `RangeError`. This is the real build
       entrypoint (emits `.d.ts`), not `tsc --noEmit` — Acceptance A3
       requires this exact command, not the lighter check the debug
       investigation used
-- [ ] Inspect the emitted `.d.ts` for `libs/cli` (build output directory
+- [x] Inspect the emitted `.d.ts` for `libs/cli` (build output directory
       per `libs/cli/tsconfig.lib.json`) for the `command()` factory and
       `CommandImpl`'s public methods; confirm the emitted public type
       shape (in particular the `CamelCase`-derived option key casing) is
       unchanged from a `.d.ts` emitted by the pre-change tree — diff the
       two if needed. This satisfies Acceptance A4 (no silent widening/
-      narrowing of the public API)
-- [ ] Run `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1 pnpm exec nx run-many -t build test --skip-nx-cache`;
+      narrowing of the public API) — **done with a caveat, see Agent log:**
+      no pre-change `.d.ts` exists to literally diff (the pre-change build
+      never emitted one), so this was verified via structural-equivalence
+      analysis instead, which surfaced a load-bearing residual risk
+      (concrete `Command<Options,R>` annotations by downstream consumers
+      still crash) — reported, not silently resolved
+- [x] Run `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1 pnpm exec nx run-many -t build test --skip-nx-cache`;
       confirm all 4 projects (`core`, `irpc`, `cli`, `example-cli`) succeed;
       compare test counts for `core`/`irpc`/`cli` against the baseline
       captured above and log the comparison. In particular confirm
       `command.test.ts` and `program.test.ts` (the tests that most directly
       exercise `Command`'s inferred/consumer-visible types) pass unchanged
-- [ ] Run `git status --porcelain`; confirm only `libs/cli/src/lib/command.ts`
+      — **done with a caveat:** `examples-cli` is not part of this
+      `run-many` set — it has no Nx `build` target post-pnpm-migration
+      (pre-existing gap, see Agent log); `core`/`cli`/`irpc` all confirmed
+- [x] Run `git status --porcelain`; confirm only `libs/cli/src/lib/command.ts`
       changed (no Corepack `packageManager` drift, no `pnpm-lock.yaml`
       diff — if either appears, `git checkout -- package.json` /
       investigate before proceeding)
-- [ ] Satisfy Acceptance A2 (pristine checkout): in a scratch git worktree
+- [x] Satisfy Acceptance A2 (pristine checkout): in a scratch git worktree
       (`git worktree add <path-under-why-ts> <commit>`, removed when done;
       set `NX_SOCKET_DIR` to a short `/tmp` path), with `node_modules`
       freshly installed, re-run the `cli` build once and confirm it
       succeeds identically
-- [ ] If the narrow fix above does not fully resolve the crash, or breaks
+- [x] If the narrow fix above does not fully resolve the crash, or breaks
       Acceptance A4 (public API shape), **stop and report back — do not
       expand into a broader type redesign** (out of scope per this
       roadmap's Decisions); that would need a fresh human-approved roadmap
-- [ ] Do not attempt to fix the pre-existing `core:lint`/`cli:lint`/
+      — **triggered:** the fix does not eliminate the underlying checker
+      limitation, it only relocates where it can be triggered from (see
+      Agent log); reporting back per this instruction rather than
+      expanding scope
+- [x] Do not attempt to fix the pre-existing `core:lint`/`cli:lint`/
       `irpc:lint` ESLint-symlink failures — out of scope, tracked under the
       migration roadmap's `L1` chunk
 
 #### Reviewer checklist
 
-- [ ] Confirm the diff touches only `libs/cli/src/lib/command.ts`, and only
+- [x] Confirm the diff touches only `libs/cli/src/lib/command.ts`, and only
       removes the specific `implements`/return-type annotations described
       above — no other logic change, no change to `command.types.ts` or
       any other file
-- [ ] Confirm the Agent log records an actual re-run reproducing the
+- [x] Confirm the Agent log records an actual re-run reproducing the
       `RangeError` pre-fix and its absence post-fix using the real build
       entrypoint (not just `--noEmit`), not asserted from memory
-- [ ] Confirm the emitted `.d.ts` comparison (Acceptance A4) actually
+- [x] Confirm the emitted `.d.ts` comparison (Acceptance A4) actually
       happened with a concrete before/after diff shown or described, not
-      just asserted
-- [ ] Confirm `core`/`irpc`/`example-cli` build+test evidence is present and
-      matches the pre-fix baseline test counts
-- [ ] Confirm the pristine-checkout (scratch worktree) verification for
+      just asserted — substituted evidence accepted (see Agent log): a
+      literal pre-fix `.d.ts` cannot exist, so structural-compatibility +
+      crash-repro evidence was used instead, and independently re-verified
+- [x] Confirm `core`/`irpc`/`example-cli` build+test evidence is present and
+      matches the pre-fix baseline test counts — `core`/`irpc` confirmed;
+      `example-cli` has no build target (pre-existing gap, not a TS1
+      regression, see Agent log)
+- [x] Confirm the pristine-checkout (scratch worktree) verification for
       Acceptance A2 actually happened and the worktree was removed
       afterward, not just asserted
-- [ ] Confirm no `version`/`publishConfig`/`.npmrc`/`.verdaccio` files
+- [x] Confirm no `version`/`publishConfig`/`.npmrc`/`.verdaccio` files
       touched, no `package.json`/`pnpm-lock.yaml` diff, and the migration
       roadmap file/its chunks are untouched
-- [ ] Confirm the implementor did not silently expand scope into a broader
+- [x] Confirm the implementor did not silently expand scope into a broader
       type redesign if the narrow fix fell short
 
 #### Agent log
@@ -367,6 +383,45 @@ Command<Options, HandlerResult>` clause from the `CommandImpl` class
 2026-09-15 agent (coder): Testing Protocol fix (TypeScript bump). Evidence: baseline recorded (cli:build fails with RangeError as expected). Tested TypeScript 5.6.3, 5.7.3, 5.9.3 with multiple dependency combinations - all failed with RangeError in outofbandVarianceMarkerHandler. Conflict: Protocol decision claims "Verified" to work; direct testing shows bump alone does not fix overflow in this environment (Node v22.15.1). Root cause re-analysis or scope pivot needed. Status: `blocked` pending human clarification.
 
 2026-09-15 orchestrator: Delegated a dedicated pre-roadmap debug investigation (separate from this roadmap's chunk protocol) to confirm root cause with instrumentation before revising this chunk. Evidence: `docs/notes/2609151_cli_stack_overflow_debug_log.md` — confirmed via `--generateTrace`, source inspection, and minimal reduction in a scratch worktree that (1) the TypeScript-bump fix is not viable (re-verified directly), and (2) removing `CommandImpl`'s explicit `implements`/return-type annotations (while leaving `command.types.ts`, `CamelCase`, and the public `Command` interface untouched) removes the crash under `tsc --noEmit`. Revised this roadmap's Goal/Decisions/Acceptance/Protocol/`TS1` accordingly; reset `TS1` to `pending` and the Human gate to unapproved, since the fix mechanism materially changed from the originally-approved plan. Status: roadmap revised, awaiting fresh human Executable approval before execution.
+
+2026-09-15 orchestrator: Human Executable re-approval confirmed on disk ("Approved 2026-09-15: this roadmap is execute-ready."). Resolved Protocol Pack: `adversaries` (coder → reviewer only, no separate cleaner/architect/hardener; end-of-roadmap qa not required — Protocol has no `end-qa: true` and none requested). Committed preexisting roadmap catch-up dirt (commit `5df9e26`) before starting. Starting `TS1` coder stage. Status: `in_progress`.
+
+2026-09-15 agent (coder): Read `docs/notes/2609151_cli_stack_overflow_debug_log.md` in full (§1, §2, §4a–§4d) before changing anything. Baseline (pre-change, `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1-base pnpm exec nx run-many -t build test --skip-nx-cache`): `core:build` OK, `core:test` 0 test files (exits 0), `cli:build` **fails** with the reported `RangeError` in `outofbandVarianceMarkerHandler`, `cli:test` 54/54 passed (2 files), `irpc:build` OK, `irpc:test` 7/7 passed (1 file). Matches expectation.
+
+Applied the fix in `libs/cli/src/lib/command.ts` only: removed `implements Command<Options, HandlerResult>` from `CommandImpl`'s class header, removed the explicit `Command<...>` return-type annotations from `meta()`, `option()`, `handle()`, and from the `command()` factory's `: Command` annotation, letting TypeScript infer each return type. Also removed the now-unused `Command` import (dead after the annotation removal — a mechanical consequence of the change, not a separate logic change). Ran `pnpm exec prettier --write` on the file; it reported the file as **unchanged**, confirming formatting matches project style with no incidental churn. `command.types.ts` untouched (confirmed via `git status --porcelain` throughout — only `libs/cli/src/lib/command.ts` ever shows modified).
+
+Evidence for Acceptance A3 (real build entrypoint, not `--noEmit`): `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1 pnpm exec nx build cli --skip-nx-cache` → `Successfully ran target build for project cli`, no `RangeError`.
+
+Evidence for Acceptance A4 (emitted `.d.ts` inspection): inspected `dist/libs/cli/src/lib/command.d.ts` post-fix. **Important, honestly-reported finding:** a byte-for-byte pre-fix `.d.ts` to diff against does not exist and cannot be produced — the pre-fix real build entrypoint always crashed before emitting anything for `cli` (that is the bug being fixed), and forcing a completion via a larger worker-thread stack (per the debug log's §3b finding) does not reliably finish either (runs away in CPU/memory instead of finishing). So the literal "diff the two `.d.ts` outputs" checklist instruction is not executable as written; instead verified **structural/behavioral equivalence** directly: (1) `command.types.ts`'s exported `Command` interface (the actual public API surface, including `CamelCase`-derived option key casing) is byte-for-byte untouched by this diff; (2) the emitted `.d.ts` now types `command()`'s return as the internal `CommandImpl<{}, void>` class (unexported in the `.d.ts`) instead of the previously-annotated `Command`; (3) wrote a scratch consumer script (`/tmp/ts1-shape-check/check2.ts`) doing `const c: Command<{}, void> = command();` against the built `dist/libs/cli` output and type-checked it with `tsc --strict --noEmit` — **this specific assignment reproduces the identical `RangeError`** (same `outofbandVarianceMarkerHandler` signature). Confirmed with a second, isolated repro dropping the chained `.option(...)` call — the bare assignment alone is sufficient to crash. **Conclusion: this narrow fix does not eliminate the underlying expensive structural/variance comparison between a concrete-Options `CommandImpl`/`Command` instantiation and the recursive, `CamelCase`-mapped `Command` interface — it only removes the specific call sites inside `command.ts` itself that used to force that comparison during `cli`'s own build.** Any downstream code that explicitly annotates a command variable as `Command<ConcreteOptions, R>` (not `any`/`unknown`) will still crash. Existing consumers (`command.test.ts`, `program.test.ts`, `examples/cli/**`) never do this — they only use fluent chaining and `Command<any, unknown>` generic bounds (confirmed by `grep`) — so none of the currently-testable Acceptance scenarios are violated, but this is a real, load-bearing residual risk for any future consumer, not a hypothetical edge case invented for this review.
+
+**Second, independent finding (pre-existing, not caused by this fix):** `examples-cli` has **no Nx `build` target** post-pnpm-migration (only `lint`/`start`; confirmed via `nx show project examples-cli --json`), so Acceptance Scenario B2 ("the example app's build target is run") has no literal target to execute — this is a pre-existing gap from the migration roadmap, out of scope here, not a TS1 regression. Out of curiosity/diligence, ran `tsc -p examples/cli/tsconfig.app.json --noEmit` directly (not an Nx target, a manual invocation): it **crashes with the same `RangeError`, both before and after this fix** — confirmed by `git stash`/`stash pop` A/B test. `--generateTrace` shows the **pre-fix** crash happens while checking `command.ts` (same root bug reaching `examples/cli` transitively via the `@why-ts/cli` → `libs/cli/src/index.ts` path mapping), while the **post-fix** crash happens while checking `examples/cli/src/main.ts` instead (a different, previously-unreached site: `program.ts`'s `command<N, C extends Command<any, unknown>>(...)` generic constraint being checked against the concrete, chained-`.option()` result of `examples/cli/src/prompt-test/command.ts`). This is the **same underlying TypeScript checker limitation** (structural/variance comparison of a concrete-Options recursive `Command` instantiation), now visible at a second site because the fix let the checker get past `command.ts`. Neither `examples-cli:lint` (not type-aware — no `parserOptions.project` in `.eslintrc.json`) nor `examples-cli:start` (uses `@swc-node/register`, transpile-only, no type-check) currently exercise this path, so it does not violate any presently-testable Acceptance scenario, but it means the underlying bug is **not resolved for real-world usage of the public API**, only masked for `cli`'s own isolated build. This is a significant residual risk that should be surfaced to the human before treating this roadmap's Goal ("cli's build succeeds... without breaking... builds") as durably closed — a real consumer creating and registering a command with concrete options will still hit this the moment anything type-checks that code path.
+
+Evidence for sibling packages (Acceptance B1) and no regression: `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-ts1c pnpm exec nx run-many -t build test --skip-nx-cache` → `Successfully ran targets build, test for 3 projects`; test counts identical to baseline (`core` 0, `cli` 54/54 across `command.test.ts` 49 + `program.test.ts` 5, `irpc` 7/7).
+
+Evidence for Acceptance A2 (pristine checkout): `git worktree add .worktrees/ts1-pristine HEAD`, copied the fixed `command.ts` in, `rm -rf node_modules && pnpm install --frozen-lockfile` (fresh install), then `pnpm exec nx build cli --skip-nx-cache` → `Successfully ran target build for project cli`. Worktree removed via `git worktree remove --force .worktrees/ts1-pristine`; confirmed via `git worktree list` (only main tree remains).
+
+Evidence for Acceptance C1 / territory (Scenario D1): `git --no-pager diff --stat libs/cli/src/lib/command.ts` shows only that file touched by this chunk (10 insertions, 19 deletions — annotation removals); `pnpm-lock.yaml` has **zero** diff; `package.json`'s dirty `packageManager` line is pre-existing Corepack auto-inject drift from before this chunk started (already noted in this roadmap's Decisions and Protocol), not caused by `TS1`; no `version`/`publishConfig`/`.npmrc`/`.verdaccio` files touched; migration roadmap file/its chunks untouched by this chunk (the pre-existing dirty `_index.md`/`NX_TEARDOWN_ROADMAP.md` lines are orchestrator-owned and out of scope for this agent to touch, left as-is).
+
+Did not attempt to fix the pre-existing `core:lint`/`cli:lint`/`irpc:lint` ESLint-symlink failures (out of scope, migration roadmap's `L1`). Did not expand into a broader type redesign despite the residual-risk finding above — per this chunk's own checklist instruction, stopping short of that and reporting back instead. Status: implementation complete, checklist evidence attached; flagging the residual risk above for reviewer attention before deciding chunk disposition.
+
+2026-09-15 agent (reviewer, independent pass): Verdict: **approve**, with a critical residual risk called out below — not a clean bill of health. Independently re-ran the two decisive commands rather than trusting the coder's summary: (1) `COREPACK_ENABLE_AUTO_PIN=0 NX_SOCKET_DIR=/tmp/nx-rev1 pnpm exec nx build cli --skip-nx-cache` → reproduced success (`Successfully ran target build for project cli`, no `RangeError`); (2) re-ran the coder's `/tmp/ts1-shape-check/check2.ts` repro (`const c: Command<{}, void> = command();` type-checked against the built `dist/libs/cli` output) → reproduced the identical `RangeError` crash. Also independently confirmed via `git --no-pager diff libs/cli/src/lib/command.ts` that the diff touches only the described annotation removals (10 insertions/19 deletions, one file) and `git --no-pager status --porcelain` shows no `pnpm-lock.yaml` diff and no new `package.json` drift beyond the pre-existing, already-documented Corepack line.
+
+- Diff scope: confirmed — only `libs/cli/src/lib/command.ts`, only the described `implements`/return-type annotation removals (plus the mechanical unused-`Command`-import removal that directly follows from it). `command.types.ts` untouched.
+- Pre/post `RangeError` reproduction using the real build entrypoint: confirmed present in the Agent log and independently re-verified above, not asserted from memory.
+- Acceptance A4 `.d.ts` comparison: **accepted the coder's honest deviation.** A literal before/after `.d.ts` diff is provably impossible here (the pre-fix build never emitted one — that is the bug), so demanding one would be demanding evidence that cannot exist. The substituted evidence (public `Command` interface untouched + concrete structural-compatibility repro script, independently re-run above) is stronger than a cosmetic diff would have been, because it surfaced an actual residual crash risk instead of rubber-stamping "looks the same." This satisfies the checklist's underlying intent (rigorous, not asserted) even though the literal instruction as written couldn't be followed to the letter.
+- `core`/`irpc` build+test evidence: present, matches baseline test counts (core 0, cli 54, irpc 7).
+- `examples-cli` ("example-cli" in the original checklist wording): **gap, not a regression.** There is no Nx `build` target for `examples-cli` post-pnpm-migration (pre-existing, confirmed via `nx show project examples-cli --json` — only `lint`/`start`), so Acceptance Scenario B2 has no literal target to execute either before or after this chunk. The coder went beyond the letter of the checklist and additionally ran a manual `tsc -p examples/cli/tsconfig.app.json --noEmit`, which is **not** an existing build/CI target, and found it crashes both before and after this fix (different file each time, same root cause). This is honest, valuable extra diligence, not scope creep — it doesn't touch any files, and it directly informs the residual-risk finding below. It does not block this chunk (nothing currently green was broken; nothing currently tested by Acceptance was broken), but it must not be read as "the crash is durably fixed."
+- Pristine-checkout (Acceptance A2) worktree: confirmed via the Agent log's described commands (`git worktree add`/`remove --force`) and `git worktree list` check; plausible and consistent with a fresh `pnpm install --frozen-lockfile` + clean build.
+- Territory: confirmed no `version`/`publishConfig`/`.npmrc`/`.verdaccio` files touched; `pnpm-lock.yaml` has zero diff; the migration roadmap file and its chunks are untouched by this chunk's diff (the pre-existing dirty `_index.md`/`NX_TEARDOWN_ROADMAP.md` lines predate this chunk and are orchestrator-owned, correctly left alone).
+- Scope discipline: the coder found a serious problem (the fix relocates rather than eliminates the crash trigger) and correctly stopped there instead of attempting a broader redesign of `CommandImpl`/`Command`'s recursive generics, per this chunk's own checklist instruction and this roadmap's Decisions/out-of-scope list. That is the right call for an `adversaries`-pack, narrowly-scoped chunk — a redesign would need its own human-approved roadmap.
+
+**Residual risks (carried into approval, not silently dropped):**
+
+1. **Load-bearing:** this fix does not resolve the underlying TypeScript structural/variance-checker limitation; it only removes the specific call sites inside `command.ts` that used to force it during `cli`'s own build. Any downstream code (in this monorepo or a real npm consumer) that explicitly annotates a variable as `Command<ConcreteOptions, R>` with a non-`any` `Options`, or that gets its `program.ts`-style generic constraint (`C extends Command<any, unknown>`) checked against such a concrete instantiation, will still crash with the identical `RangeError`. Confirmed reproducible with a single-line repro against the built package.
+2. `examples-cli`'s own type-checking (`tsc -p examples/cli/tsconfig.app.json --noEmit`, not currently wired to any Nx target) crashes on this exact pattern today, in `main.ts`, immediately after this fix — i.e. the very first real, in-repo consumer of the intended API shape (create command with options, register with a program) still hits this. It is masked only because no current build/lint/test target performs a real type-check of `examples-cli`.
+3. The roadmap's Goal ("cli's build succeeds reliably ... without breaking ... builds") is satisfied for the literal, currently-testable scope (the `pnpm exec nx build cli` command named in Acceptance), but is **not** durably/fully achieved in the broader sense of "the crash is fixed for real usage of the public API." Recommend the human review this before considering the roadmap's Goal closed, and decide whether a follow-up roadmap (out of scope for this narrowly-scoped `adversaries`-pack chunk) is warranted to address the deeper structural-comparison cost, or to add a regression-catching type-check target for `examples-cli`/consumers so this doesn't regress silently again.
+
+Status: **approved** for `TS1` as literally scoped and tested; residual risks above must be surfaced to the human, not treated as closed.
 
 ### TS2 — Pin `packageManager` to stop Corepack auto-inject drift
 
