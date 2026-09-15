@@ -162,7 +162,7 @@ the build+test re-run itself is the verification gate.
 
 ## Human gate / Executable
 
-- [ ] User sets this roadmap **Executable** (explicit approval) before any
+- [x] User sets this roadmap **Executable** (explicit approval) before any
       implementor executes chunks.
 
 _Until this checkbox is explicitly approved by the user, this roadmap is
@@ -181,7 +181,7 @@ does **not** imply Executable — human gate above still applies.
 
 ### TS1 — Bump TypeScript to fix the cli build stack overflow
 
-**Status:** pending
+**Status:** blocked
 
 **Depends on:** none
 
@@ -242,7 +242,7 @@ does **not** imply Executable — human gate above still applies.
 
 #### Agent log
 
----
+2026-09-15 agent (coder): Testing Protocol fix (TypeScript bump). Evidence: baseline recorded (cli:build fails with RangeError as expected). Tested TypeScript 5.6.3, 5.7.3, 5.9.3 with multiple dependency combinations - all failed with RangeError in outofbandVarianceMarkerHandler. Conflict: Protocol decision claims "Verified" to work; direct testing shows bump alone does not fix overflow in this environment (Node v22.15.1). Root cause re-analysis or scope pivot needed. Status: `blocked` pending human clarification.
 
 ### TS2 — Pin `packageManager` to stop Corepack auto-inject drift
 
