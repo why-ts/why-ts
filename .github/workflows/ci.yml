@@ -18,15 +18,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Version comes from package.json's "packageManager" field
+      # (pnpm@10.18.2+...). Do not also set `version:` here --
+      # pnpm/action-setup errors (ERR_PNPM_BAD_PM_VERSION) if both are
+      # specified and disagree in form, even when they resolve to the same
+      # major version.
       - uses: pnpm/action-setup@v6
-        with:
-          # pnpm-lock.yaml is lockfileVersion '9.0' (written by pnpm 9+;
-          # confirmed pnpm 10.18.2 locally). pnpm 8 cannot read a v9
-          # lockfile at all ("Ignoring not compatible lockfile" ->
-          # ERR_PNPM_NO_LOCKFILE with --frozen-lockfile) -- discovered via a
-          # real failing GitHub Actions run on this chunk's throwaway PR,
-          # not assumed. Bumped to match.
-          version: 10
 
       # Cache node_modules
       - uses: actions/setup-node@v7
