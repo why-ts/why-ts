@@ -7,7 +7,7 @@ here.
 
 ## Ready
 
-- `2609141945_NX_TEARDOWN_ROADMAP.md` — hard blocker resolved 2026-09-16: `origin/main` at `66363de` includes the full migration; real CI run for `main` (https://github.com/why-ts/why-ts/actions/runs/34978655655/job/104412894227) succeeded. Executable.
+_(none)_
 
 ## Not Ready
 
@@ -33,9 +33,9 @@ _(none)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent        | Roadmap                             | Chunk | Branch | Since      |
-| ------------ | ----------------------------------- | ----- | ------ | ---------- |
-| orchestrator | `2609141945_NX_TEARDOWN_ROADMAP.md` | X1    | main   | 2026-09-16 |
+| Agent    | Roadmap | Chunk | Branch | Since |
+| -------- | ------- | ----- | ------ | ----- |
+| _(none)_ |         |       |        |       |
 
 ## Orchestrator Notes (2026-09-15)
 
@@ -43,10 +43,12 @@ human joins, claim a chunk here before starting:
 
 `2609142054_CLI_BUILD_STACK_OVERFLOW_FIX_ROADMAP.md` complete 2026-09-15 (2/2 chunks approved: TS1, TS2; commits `4828e36`, `9fe01cc`, `dfd952c`). See `docs/roadmaps/_archive.md`. Residual finding surfaced as a new Human actions row above (fix relocates rather than eliminates the underlying variance-checker cost for real downstream consumers).
 
-**Execute-all-roadmaps drain status (updated 2026-09-16):** Hard blocker resolved — `origin/main` (`66363de`) includes the full migration and real CI on `main` succeeded (run 34978655655). `NX_TEARDOWN_ROADMAP.md` moved from Blocked to Ready.
+`2609141945_NX_TEARDOWN_ROADMAP.md` complete 2026-09-16 (1/1 chunk approved: X1, Pack six-pack, commit `d1dd6d2`; end-of-roadmap qa: PASS). See `docs/roadmaps/_archive.md`.
+
+**Execute-all-roadmaps drain status (updated 2026-09-16):** Queue drained. No Ready/Not Ready/Blocked roadmaps remain.
 
 1. `CLI_BUILD_STACK_OVERFLOW_FIX`: Complete, archived.
-2. `NX_TEARDOWN` (X1): Ready — hard dependency cleared 2026-09-16.
-3. **Human actions open:** 2 items (deny-dangerous hook gap; TS1 residual follow-up).
+2. `NX_TEARDOWN` (X1): Complete, archived — qa PASS.
+3. **Human actions open:** 2 items (deny-dangerous hook gap; TS1 residual follow-up) — see table above.
 
-Next session: execute `2609141945_NX_TEARDOWN_ROADMAP.md` via execute-roadmap.
+Queue is empty of Executable unfinished work. Next session: address open Human actions, or author/approve a new roadmap.
