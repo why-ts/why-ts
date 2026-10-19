@@ -1,0 +1,374 @@
+# TypeScript v6 upgrade — Task Map
+
+## Goal (locked)
+
+Bump the repo's pinned TypeScript compiler from `~5.5.4` to the latest
+TypeScript 6.x release, bump `@typescript-eslint/eslint-plugin` /
+`@typescript-eslint/parser` to a compatible v8.x release (v7 does not
+support TS 6.x), fix any resulting lint or type-check fallout across the 3
+libs (`@why-ts/cli`, `@why-ts/core`, `@why-ts/irpc`) and `examples/cli`, and
+get `./scripts/verify.sh` green under the new toolchain. Done looks like:
+every package builds, lints, and tests clean on TypeScript 6.x, with any
+Ask-human-tier config diffs (`.eslintrc.json`, and `tsconfig.base.json` if
+touched) called out for explicit human review.
+
+**Out of scope:**
+
+- Jumping to TypeScript 7.x (npm `latest` dist-tag is actually `7.0.2`; the
+  user explicitly wants the v6.x line).
+- Reworking the `CamelCase` variance fix from commit `71c2989` unless
+  TypeScript 6.0.3 shows a regression. The fix restores the explicit
+  `Command` interface return types and uses `CamelCasedKey<in out N, V>`
+  with `NoInfer<CamelCase<N>>` to prevent the TS 5.5 variance-checker stack
+  overflow. T4 validates that fix under TypeScript 6.0.3.
+- Wiring `examples/cli` into a permanent CI/build/typecheck target (already
+  an accepted decision from `2609142054_CLI_BUILD_STACK_OVERFLOW_FIX_ROADMAP.md`).
+- Any non-devDependency dependency bump (`ts-pattern`, `type-fest`, `zod`,
+  etc.) unless a fallout fix strictly requires it.
+- Bumping ESLint itself, unless typescript-eslint 8.70.0's peer range
+  actually rejects the repo's current `eslint: ~8.57.0` (it doesn't —
+  confirmed peer range `^8.57.0 || ^9.0.0 || ^10.0.0`).
+
+## Decisions (locked)
+
+- **Decision:** Target `typescript` version is exactly `6.0.3` (latest 6.x
+  release as of authoring; confirmed via `npm view typescript versions`).
+  Pin with `~6.0.3` (patch-only drift), matching the existing `~5.5.4`
+  tilde convention. Do not use a caret or open range.
+- **Decision:** Target `@typescript-eslint/eslint-plugin` /
+  `@typescript-eslint/parser` version is `8.70.0` (latest v8.x as of
+  authoring; confirmed peer dependency `"typescript": ">=4.8.4 <6.1.0"`
+  covers `6.0.3`). Pin with `^8.70.0`, matching the existing `^7.18.0`
+  caret convention.
+- **Decision:** Commit `71c2989` fixed the variance-checker `RangeError`
+  by declaring variance on `CamelCasedKey` and preventing inference into
+  type-fest's `CamelCase`. T4 re-tests both the `cli` build and
+  `examples/cli` type-check under TS 6.0.3. If the crash returns, diagnose
+  whether the failure is in this fix or a TypeScript 6 regression; do not
+  make an undirected redesign. Update the existing Human actions row in
+  `docs/roadmaps/_index.md` in place: close it if verified fixed, or record
+  the specific residual if it still reproduces.
+- **Decision:** No changeset is expected for this upgrade (devDependency
+  bump only) unless a lib's rebuilt `.d.ts` output actually changes shape
+  under TS 6.0.3, in which case the implementor must call that out
+  explicitly before the roadmap can be considered done.
+- **Decision:** `tsconfig.base.json` is touched **only if** TS 6.0.3
+  hard-errors or hard-deprecates something in its current settings
+  (e.g. `moduleResolution: "node"`). Do not proactively modernize option
+  names as part of this roadmap.
+- **Decision:** Per `AGENTS.md`'s territory map, `.eslintrc.json` (and
+  `tsconfig.base.json`, if touched) are Ask-human tier. This roadmap
+  satisfies that via normal human review of the roadmap's diffs at
+  Executable approval and at chunk review time — no extra mechanical gate
+  beyond calling the diff out explicitly in the chunk's Agent log line.
+
+## Acceptance
+
+### Feature: TypeScript 6.x upgrade
+
+Scenario A1 — Root pin moved to 6.0.3
+Given the workspace root `package.json` currently pins `"typescript": "~5.5.4"`
+When the upgrade is applied
+Then the root `package.json` pins `"typescript": "~6.0.3"`
+And no lib or app declares its own conflicting `typescript` version
+
+Scenario A2 — typescript-eslint bumped to 8.70.0
+Given `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` are pinned at `^7.18.0`
+When the upgrade is applied
+Then both packages are pinned to `^8.70.0`
+And `pnpm install` resolves without peer dependency errors against the repo's `eslint: ~8.57.0`
+
+Scenario A3 — Full verify is green
+Given the version bumps in A1 and A2 are applied and any fallout is fixed
+When `./scripts/verify.sh` is run
+Then `pnpm --if-present run lint` exits 0 across `libs` and `examples`
+And `pnpm -r --if-present run test` exits 0 for every package
+And `pnpm -r --if-present run build` (tsc emit) exits 0 for every published lib
+
+Scenario A4 — No unexplained lint rule regressions
+Given `@typescript-eslint` moves from v7 to v8 (a major version with rule/config changes)
+When lint runs against `.eslintrc.json`
+Then any newly-failing, renamed, or removed rules are either fixed in source or the rule config is adjusted with a one-line rationale recorded in the chunk's Agent log
+And no lint rule is silently disabled repo-wide without that rationale
+
+Scenario A5 — Restored `Command` interface types remain stack-safe
+Given commit `71c2989` fixes the TS 5.5 variance-checker `RangeError`
+When TypeScript is bumped to 6.0.3
+Then `pnpm --filter @why-ts/cli build` and `npx tsc -p examples/cli/tsconfig.app.json --noEmit` complete without `RangeError`
+And the roadmap records both command outputs
+And `docs/roadmaps/_index.md`'s existing Human actions row is closed if both checks pass, or updated in place with a specific remaining failure
+
+Scenario A6 — No unintended change to published `.d.ts` shape
+Given the 3 libs are published packages with immutable versions once released
+When the libs are rebuilt under TypeScript 6.0.3
+Then any observed change in emitted `.d.ts` output is called out explicitly in the relevant chunk's Agent log
+And the no-changeset default (see Decisions) is confirmed or overridden with a stated reason
+
+Scenario A7 — Ask-human-tier files are flagged for review
+Given `.eslintrc.json` (and `tsconfig.base.json`, if touched) are Ask-human tier per `AGENTS.md`
+When the chunk touching either file is completed
+Then the diff to that file is called out explicitly in the chunk's Agent log line
+
+## Protocol
+
+**Pack:** two-pack
+
+- No forced separate `cleaner` hop — this is fallout-fixing work driven by
+  a tooling bump, not tidy/rename cleanup. Inline coder cleanup only, per
+  two-pack default (`coder → reviewer`).
+- Order: T1 first (foundation). T2 and T3 both depend on T1 and touch
+  disjoint file sets (`.eslintrc.json` + lint-driven source fixes vs.
+  `tsconfig.base.json` + type-driven source fixes) — run them in parallel
+  **only if** their fallout turns out not to touch the same source files
+  (same file, not merely same package); the orchestrator makes this call
+  by reading T1's Agent log fallout report. If it shows overlapping files,
+  run T2 then T3 sequentially instead. T4 depends on **T1 and T3** (not T1
+  alone) — the crash re-test must run against a lib tree that already
+  builds clean under T3's fixes, so a "still crashes" / "fixed" / "changed"
+  finding reflects the TS 6.0.3 bump itself, not unrelated in-flight T3
+  fallout. T5 depends on T1, T2, T3, and T4.
+- If T1's fallout report shows either T2 or T3's fix surface is large
+  (e.g. double-digit file count) or spans clearly distinct concerns (e.g.
+  unrelated error categories, or fallout isolated to one lib vs. spread
+  across all three), split that chunk further (e.g. per-lib or
+  per-error-category sub-chunks) before proceeding — do not absorb
+  everything into one T2 or T3 pass. Record the split (or the decision not
+  to split, with file/concern count as evidence) in T1's Agent log.
+- Verify with `./scripts/verify.sh` (root) after each chunk; this is the
+  same command CI (`.github/workflows/ci.yml`) runs, so a green local run
+  is trustworthy evidence.
+- Commit per approved chunk, per `AGENTS.md` § Done = evidence.
+
+---
+
+## Human gate / Executable
+
+- [x] User sets this roadmap **Executable** (explicit approval) before any
+      implementor executes chunks.
+
+_The user approved this roadmap as **Executable**. Chunks may now be executed._
+
+## Task list
+
+### T1 — Bump `typescript` and `@typescript-eslint/*`, produce a fallout report
+
+**Status:** approved
+
+**Depends on:** none
+
+**Files:** `package.json`, `pnpm-lock.yaml`
+
+#### Implementor checklist
+
+- [x] In root `package.json`, set `"typescript": "~6.0.3"` and
+      `"@typescript-eslint/eslint-plugin": "^8.70.0"`,
+      `"@typescript-eslint/parser": "^8.70.0"`.
+- [x] Run `pnpm install`; it exited 0 and regenerated `pnpm-lock.yaml`, resolving TypeScript `6.0.3` and typescript-eslint `8.71.2`. pnpm still reports unmet peer warnings: `tsconfck@3.1.6` declares TypeScript `^5.0.0` (CLI config/tests pass under TS 6; T5 must rerun `./scripts/verify.sh`), and `@swc-node/core@1.15.0` declares `@swc/core >=1.13.3` while `1.7.42` is locked (pre-existing in `HEAD`).
+- [x] Run `pnpm --if-present run lint`, `pnpm -r --if-present run build`,
+      `pnpm -r --if-present run test` and capture full output. Do **not**
+      fix fallout in this chunk — just produce a report (in the Agent log)
+      of which files/packages fail and why (lint rule vs. type error vs.
+      test failure), so T2/T3 know their exact scope.
+- [x] Confirm whether the failing files from lint vs. build overlap (needed
+      for the Protocol's parallel-vs-sequential call on T2/T3).
+- [x] Record file/concern counts for the lint-fallout and type-fallout
+      surfaces (per-lib breakdown). If either surface is large (e.g. double-
+      digit file count) or spans clearly distinct concerns, note in the
+      Agent log that T2 and/or T3 must be split further before proceeding
+      (per Protocol).
+
+#### Reviewer checklist
+
+- [x] `package.json` pins exactly `~6.0.3` / `^8.70.0` per Decisions — no
+      open ranges, no stray versions elsewhere.
+- [x] `pnpm-lock.yaml` diff is consistent with only these two dependency
+      bumps (no unrelated dependency drift smuggled in).
+- [x] The fallout report in the Agent log is concrete (file paths + error
+      kind), not "some things broke."
+- [x] No fallout was fixed in this chunk (scope discipline — that's T2/T3).
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+2026-10-19 agent (T1): Pack: two-pack. Blocked before implementation because uncommitted lockfile and source changes overlapped roadmap Files. Verify commands were not run. No unrelated work was changed. Status: blocked.
+
+2026-10-19 agent (T1): Resumed after user-directed cleanup; form files, lockfile additions, and supporting Core export removed. Evidence: `pnpm --if-present run lint` fails at `libs/irpc/src/lib/irpc.types.ts:196` (`type Empty = ;`). Preserved the user edit; T1 will report it as pre-existing fallout. Status: in_progress.
+
+2026-10-19 agent (T1): Bumped the root toolchain and captured fallout without source fixes. Evidence: `package.json`, `pnpm-lock.yaml`, and commands below. Status: in_progress.
+
+**Dependency resolution**
+
+- `pnpm install`: exit 0; resolved TypeScript `6.0.3`, typescript-eslint plugin/parser `8.71.2` within `^8.70.0`.
+- The typescript-eslint peer ranges accept ESLint `8.57.1` and TypeScript `6.0.3`; no peer error names ESLint.
+- `pnpm install` reported unmet peer warnings. `tsconfck@3.1.6` declares TypeScript `^5.0.0`, but the CLI's Vite config loads `tsconfigPaths()` from `vite-tsconfig-paths` (`libs/cli/vite.config.ts:3,9`), whose lockfile graph includes `tsconfck@3.1.6`; the CLI suite passed 54 tests under TypeScript `6.0.3`, exercising that config path. This verifies runtime use, not the declared peer range; T5 must rerun `./scripts/verify.sh`. `@swc-node/core@1.15.0` declares `@swc/core >=1.13.3`, while `1.7.42` is locked. This warning is pre-existing: `git show HEAD:pnpm-lock.yaml` contains both the peer range and locked `@swc/core 1.7.42`. Neither warning prompted a dependency change.
+- Lockfile direct importer changes are limited to the three requested pins and their TypeScript peer references. Remaining lockfile edits replace/remove typescript-eslint v7 transitive graph entries; no unrelated direct dependency versions drifted.
+
+**Declared command results**
+
+- `pnpm --if-present run lint`: exit 1; 2 errors and 36 warnings. Current errors: `libs/core/src/lib/promise-trigger.ts:38`, `@typescript-eslint/no-unused-expressions`; `libs/irpc/src/lib/irpc.types.ts:196`, parse error `Type expected` from the pre-existing user edit `type Empty = ;`. The IRPC error is not TS6 fallout.
+- Lint warnings: 36 across 14 warning-bearing files (29 `no-explicit-any`, 7 `no-unused-vars`). By area: `examples/cli` 1 warning / 1 file; `libs/cli` 22 / 6; `libs/core` 4 / 3; `libs/irpc` 9 / 4. Warning files: `examples/cli/src/prompt-test/handler.ts`; `libs/cli/src/lib/command.types.ts`, `libs/cli/src/lib/config/program-help-formatter.default.ts`, `libs/cli/src/lib/config/program-help-formatter.ts`, `libs/cli/src/lib/option.types.ts`, `libs/cli/src/lib/program.ts`, `libs/cli/src/lib/program.types.ts`; `libs/core/src/lib/drill.ts`, `libs/core/src/lib/peek.ts`, `libs/core/src/lib/promise-trigger.ts`; `libs/irpc/src/lib/irpc.proxy.ts`, `libs/irpc/src/lib/transport/post-message-base.transport.ts`, `libs/irpc/src/lib/transport/transferer.ts`, `libs/irpc/src/lib/transport/worker-self.transport.ts`. The pre-bump evidence reports 34 warnings; its per-file breakdown is unavailable, so the 2-warning count difference is not attributed to TS6.
+- `pnpm -r --if-present run build`: exit 2. `pnpm --filter @why-ts/cli build` and `pnpm --filter @why-ts/core build` each exit 2 with TS5101 (`baseUrl` deprecated) and TS5107 (`moduleResolution=node10` deprecated), reported from `tsconfig.lib.json:3`. Both originate from the shared options in `tsconfig.base.json`. `pnpm --filter @why-ts/irpc build` exits 2 with TS1110 at `libs/irpc/src/lib/irpc.types.ts:196`; this is the pre-existing syntax edit. Build fallout for T3 is 2 options in 1 shared config file, affecting CLI and Core.
+- `pnpm -r --if-present run test`: exit 1. CLI passes 54 tests in 2 files; Core has no test files and exits 0; IRPC fails to transform `src/lib/irpc.spec.ts` because `libs/irpc/src/lib/irpc.types.ts:196` contains the preserved `type Empty = ;` syntax error. No test assertion failed. A fresh `COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter @why-ts/cli test` also exited 0 with all 54 tests passing under TS 6.
+
+**Overlap and chunk sizing**
+
+- Raw lint/build/test failures overlap only at `libs/irpc/src/lib/irpc.types.ts`; preserve and exclude this pre-existing user edit from TS6 fallout.
+- Actual lint work is 1 error in `libs/core/src/lib/promise-trigger.ts`; actual TS6 build work is the shared `tsconfig.base.json` options affecting CLI/Core. These fix surfaces are disjoint, so T2 and T3 may run in parallel after T1 review.
+- No further split is indicated: T2 has one failing source file/concern; T3 has one shared config file/concern with 2 option diagnostics. Existing warnings span projects but are not confirmed new fallout; the pre-bump baseline already had 34 warnings.
+
+2026-10-19 coder (T1 reviewer revision): Removed the duplicated trailing checklist fragment. Classified the `@swc-node/core` peer warning as pre-existing from `git show HEAD:pnpm-lock.yaml`. Verified the `tsconfck`-backed CLI config path with `COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter @why-ts/cli test` (exit 0; 54/54 tests); the recursive test command remains exit 1 only because the preserved IRPC edit fails to parse. Assign T5 to rerun `./scripts/verify.sh` and report the result. If that gate exposes a TS 6 compatibility failure, request human scope guidance before changing unrelated dependency pins. No selected versions or dependency pins changed. Status: in_progress.
+
+2026-10-19 agent (T1 reviewer): Verdict: approve. Independently checked exact pins, lockfile scope, fallout evidence, and no fallout fixes. Residuals: `tsconfck` declares a TS5 peer range despite passing CLI tests under TS6; T5 will rerun full verify. The SWC peer warning predates T1. The preserved IRPC user edit still prevents recursive builds/tests. Status: approved.
+
+---
+
+### T2 — Fix lint fallout (typescript-eslint v7→v8)
+
+**Status:** pending
+
+**Depends on:** T1
+
+**Files:** `.eslintrc.json` (Ask-human tier — call out diff explicitly),
+plus whichever `*.ts` files T1's fallout report identifies as newly
+lint-failing.
+
+#### Implementor checklist
+
+- [ ] Fix or explain every new/changed lint failure identified in T1's
+      report. Prefer fixing source over disabling rules.
+- [ ] If a rule config change in `.eslintrc.json` is required (renamed,
+      removed, or behavior-changed rule in v8), make the minimal change
+      and record a one-line rationale in the Agent log (Acceptance A4).
+- [ ] Re-run `pnpm --if-present run lint` until it exits 0.
+- [ ] Explicitly flag the `.eslintrc.json` diff in the Agent log per
+      Acceptance A7.
+
+#### Reviewer checklist
+
+- [ ] No lint rule silently disabled repo-wide without a recorded
+      rationale (Acceptance A4).
+- [ ] `.eslintrc.json` diff is minimal and matches the stated rationale —
+      flagged explicitly for human review, not buried.
+- [ ] Fixes are scoped to lint fallout only (no drive-by type or logic
+      changes that belong to T3).
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+---
+
+### T3 — Fix type-check/build fallout (TypeScript 5.5 → 6.0.3)
+
+**Status:** pending
+
+**Depends on:** T1
+
+**Files:** `libs/*/src/**`, `libs/*/tsconfig*.json` as strictly needed,
+`tsconfig.base.json` (Ask-human tier — only if TS 6.0.3 forces a change;
+call out diff explicitly if touched).
+
+#### Implementor checklist
+
+- [ ] Fix every new type-check/build failure identified in T1's report
+      across `libs/cli`, `libs/core`, `libs/irpc`.
+- [ ] Touch `tsconfig.base.json` only if TS 6.0.3 hard-errors or
+      hard-deprecates a current setting (e.g. `moduleResolution: "node"`).
+      If touched, keep the change minimal and record the exact error that
+      forced it.
+- [ ] Re-run `pnpm -r --if-present run build` until it exits 0 for all 3
+      libs.
+- [ ] Check each lib's emitted `.d.ts` (`dist/libs/*/src/index.d.ts` or
+      equivalent) for any shape change vs. before the bump. Record findings
+      per Acceptance A6 (changeset decision).
+- [ ] If `tsconfig.base.json` was touched, explicitly flag that diff in the
+      Agent log per Acceptance A7.
+
+#### Reviewer checklist
+
+- [ ] `tsconfig.base.json` untouched unless the Agent log states the exact
+      TS 6.0.3 error that forced the change.
+- [ ] `.d.ts` shape-change finding (or "no change") is recorded per
+      Acceptance A6, with a stated changeset decision.
+- [ ] Fixes are scoped to type-check/build fallout only (no drive-by lint
+      rule changes that belong to T2).
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+---
+
+### T4 — Verify the `Command` variance fix under TS 6.0.3
+
+**Status:** pending
+
+**Depends on:** T1, T3
+
+**Files:** none expected (evidence-gathering only); `docs/roadmaps/_index.md`
+if the existing Human actions row needs closing or updating.
+
+#### Implementor checklist
+
+- [ ] After T3's lib fixes have landed, run `pnpm --filter @why-ts/cli build`
+      and `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TS 6.0.3.
+      Confirm neither crashes with `RangeError`; the `Command` annotations
+      must remain explicit.
+- [ ] Record each exact command and its result in the Agent log, including
+      any type errors separate from stack-overflow failures.
+- [ ] Update the existing `docs/roadmaps/_index.md` Human actions row in
+      place: close it if both checks pass, or state the concrete residual
+      if either fails. Do not duplicate the row.
+- [ ] Do not redesign the type fix without evidence that TS 6.0.3 regresses
+      it (Decisions).
+
+#### Reviewer checklist
+
+- [ ] Both checks have concrete, reproducible command/result evidence.
+- [ ] `_index.md` was updated in place (row closed if resolved, otherwise
+      updated with the specific residual; no duplicate row).
+- [ ] `Command` interface return annotations remain restored; any change to
+      `CamelCasedKey` is tied to a reproduced TS 6.0.3 failure.
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+---
+
+### T5 — Full verify sweep and roadmap close-out
+
+**Status:** pending
+
+**Depends on:** T1, T2, T3, T4
+
+**Files:** none expected beyond this roadmap file and, if not already done
+in T4, `docs/roadmaps/_index.md`.
+
+#### Implementor checklist
+
+- [ ] Run `./scripts/verify.sh` end-to-end from a clean state and confirm
+      it exits 0 (Acceptance A3).
+- [ ] Confirm every prior chunk's Ask-human-tier diff (`.eslintrc.json`,
+      `tsconfig.base.json` if touched) is clearly flagged for the human,
+      either in this chunk's Agent log or by reference to T2/T3's logs.
+- [ ] Confirm the changeset decision from T3 (Acceptance A6) is final and
+      consistent (no changeset added unless `.d.ts` shape changed).
+- [ ] Move this roadmap to `docs/roadmaps/_archive.md` per the project's
+      roadmap lifecycle, once all chunks are approved.
+
+#### Reviewer checklist
+
+- [ ] `./scripts/verify.sh` was actually run (not claimed) — evidence in
+      Agent log.
+- [ ] All Acceptance scenarios (A1–A7) are traceable to a specific chunk's
+      Agent log entry.
+- [ ] Archive move is correct and `_index.md` no longer lists this roadmap
+      under Ready/Not Ready/Blocked.
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+---
