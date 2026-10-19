@@ -342,7 +342,7 @@ call out diff explicitly if touched).
 
 ### T3b — Update the CLI example config for TypeScript 6
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** T3
 
@@ -350,21 +350,25 @@ call out diff explicitly if touched).
 
 #### Implementor checklist
 
-- [ ] Resolve TS5107 in the example config with nondeprecated paired module/resolution settings; preserve CommonJS behavior.
-- [ ] Run `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TypeScript 6.0.3. Confirm the checker reaches the source and record type/RangeError results.
-- [ ] Run `./scripts/verify.sh` per project Protocol and record the full result.
+- [x] Resolve TS5107 in the example config with nondeprecated paired module/resolution settings; preserve CommonJS behavior.
+- [x] Run `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TypeScript 6.0.3. Confirm the checker reaches the source and record type/RangeError results.
+- [x] Run `./scripts/verify.sh` per project Protocol and record the full result.
 
 #### Reviewer checklist
 
-- [ ] The example type-check no longer fails with TS5107 and reaches the intended TypeScript checks.
-- [ ] The module/resolution pair preserves the existing CommonJS runtime intent.
-- [ ] Changes stay within the declared example config and T3b fallout.
+- [x] The example type-check no longer fails with TS5107 and reaches the intended TypeScript checks.
+- [x] The module/resolution pair preserves the existing CommonJS runtime intent.
+- [x] Changes stay within the declared example config and T3b fallout.
 
 #### Agent log
 
 <!-- implementor / reviewer append below -->
 
 2026-10-19 agent (T3b scope): T3 review found the example app still inherits deprecated `moduleResolution: node10`; T4 cannot test the variance fix until TS5107 is removed.
+
+2026-10-19 agent (T3b): Set paired `module: Node16` and `moduleResolution: Node16`; `examples/cli/package.json` has no `type: module`, preserving CommonJS intent. Evidence: `pnpm exec tsc -p examples/cli/tsconfig.app.json --noEmit` on TypeScript 6.0.3 exits 0 with no type errors or RangeError; `./scripts/verify.sh` exits 0 (lint: 0 errors, 40 warnings; tests: 61 passed, 0 failed; Core has no test files; CLI, Core, and IRPC builds passed). Status: in_progress.
+
+2026-10-19 reviewer (T3b): Verdict: approve. Independently confirmed paired Node16 settings, CommonJS intent, example type-check, and full verify. Residuals: 40 lint warnings and existing Vite/Vitest notices. Status: approved.
 
 ---
 
