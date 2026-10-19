@@ -284,7 +284,7 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 ### T3 — Fix type-check/build fallout (TypeScript 5.5 → 6.0.3)
 
-**Status:** in_progress
+**Status:** approved
 
 **Depends on:** T1
 
@@ -294,32 +294,32 @@ call out diff explicitly if touched).
 
 #### Implementor checklist
 
-- [ ] Fix every new type-check/build failure identified in T1's report
+- [x] Fix every new type-check/build failure identified in T1's report
       across `libs/cli`, `libs/core`, `libs/irpc`.
-- [ ] Touch `tsconfig.base.json` only if TS 6.0.3 hard-errors or
+- [x] Touch `tsconfig.base.json` only if TS 6.0.3 hard-errors or
       hard-deprecates a current setting (e.g. `moduleResolution: "node"`).
       If touched, keep the change minimal and record the exact error that
       forced it.
-- [ ] Preserve unrelated TypeScript diagnostics. Do not apply broad
+- [x] Preserve unrelated TypeScript diagnostics. Do not apply broad
       `ignoreDeprecations: "6.0"` without an independent guard for TS2880;
       the reviewer reproduced that it suppresses the import-assertion error.
-- [ ] Re-run `pnpm -r --if-present run build` until it exits 0 for all 3
+- [x] Re-run `pnpm -r --if-present run build` until it exits 0 for all 3
       libs.
-- [ ] Check each lib's emitted `.d.ts` (`dist/libs/*/src/index.d.ts` or
+- [x] Check each lib's emitted `.d.ts` (`dist/libs/*/src/index.d.ts` or
       equivalent) for any shape change vs. before the bump. Record findings
       per Acceptance A6 (changeset decision).
-- [ ] If `tsconfig.base.json` was touched, explicitly flag that diff in the
+- [x] If `tsconfig.base.json` was touched, explicitly flag that diff in the
       Agent log per Acceptance A7.
 
 #### Reviewer checklist
 
-- [ ] `tsconfig.base.json` untouched unless the Agent log states the exact
+- [x] `tsconfig.base.json` untouched unless the Agent log states the exact
       TS 6.0.3 error that forced the change.
-- [ ] The config does not suppress unrelated diagnostics such as TS2880; if
+- [x] The config does not suppress unrelated diagnostics such as TS2880; if
       a broad ignore is unavoidable, an independent guard is verified.
-- [ ] `.d.ts` shape-change finding (or "no change") is recorded per
+- [x] `.d.ts` shape-change finding (or "no change") is recorded per
       Acceptance A6, with a stated changeset decision.
-- [ ] Fixes are scoped to type-check/build fallout only (no drive-by lint
+- [x] Fixes are scoped to type-check/build fallout only (no drive-by lint
       changes that belong to T2a/T2b).
 
 #### Agent log
@@ -328,6 +328,9 @@ call out diff explicitly if touched).
 
 2026-10-19 agent (T3 first attempt): `ignoreDeprecations: "6.0"` cleared TS5101/TS5107; recursive build passed and declarations matched TS5.5.4 (CLI 27, Core 7, IRPC 12). `./scripts/verify.sh` stopped at T2 lint. Not approved.
 2026-10-19 reviewer (T3): Revise. A TypeScript API check showed the broad setting also suppresses TS2880 for import assertions; preserve TS2880 with narrower config or an independently verified guard. No commit.
+2026-10-19 coder (T3 fresh attempt): Set paired `module: "Node16"` / `moduleResolution: "Node16"` in each library build config; all three package manifests declare `type: commonjs`, and emitted entry files are CommonJS. T1 reported TS5101 for the explicit `baseUrl` and TS5107 for `moduleResolution: "node"`; removed `baseUrl` from `tsconfig.base.json` and replaced the library-build resolution with paired Node16 settings. Prefixed `paths` targets with `./` after TS6 reported TS5090 for non-relative path values without `baseUrl`. `pnpm -r --if-present run build` exits 0 for CLI, Core, and IRPC. No `ignoreDeprecations` was added, so TS2880 is not suppressed. TS5.5.4 baseline comparison found no missing or changed declarations: CLI 27, Core 7, IRPC 12; no changeset is needed. `./scripts/verify.sh` exits 1 at lint with 3 concurrent T2 errors (Core `promise-trigger.ts:38`; IRPC `irpc.types.ts:109-110`) and 40 warnings; it stopped before tests/build, and no lint changes were made. Ask-human: `tsconfig.base.json` changed to remove `baseUrl` and adjust `paths`. Residual: shared `moduleResolution: "node"` remains for configs outside the three library build configs; T4's example check may need a separately scoped follow-up. Status: in_progress.
+
+2026-10-19 reviewer (T3): Verdict: approve. Independently verified all three library builds, path aliases, CommonJS emit, and unchanged declarations. Residual: `examples/cli` inherits deprecated `moduleResolution: node10`; `pnpm exec tsc -p examples/cli/tsconfig.app.json --noEmit` exits 2 with TS5107, blocking T4's variance check until addressed. Full verify awaits T2a/T2b. Status: approved.
 
 ---
 
