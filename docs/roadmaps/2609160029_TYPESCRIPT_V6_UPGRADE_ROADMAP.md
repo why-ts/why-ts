@@ -369,6 +369,7 @@ call out diff explicitly if touched).
 2026-10-19 agent (T3b): Set paired `module: Node16` and `moduleResolution: Node16`; `examples/cli/package.json` has no `type: module`, preserving CommonJS intent. Evidence: `pnpm exec tsc -p examples/cli/tsconfig.app.json --noEmit` on TypeScript 6.0.3 exits 0 with no type errors or RangeError; `./scripts/verify.sh` exits 0 (lint: 0 errors, 40 warnings; tests: 61 passed, 0 failed; Core has no test files; CLI, Core, and IRPC builds passed). Status: in_progress.
 
 2026-10-19 reviewer (T3b): Verdict: approve. Independently confirmed paired Node16 settings, CommonJS intent, example type-check, and full verify. Residuals: 40 lint warnings and existing Vite/Vitest notices. Status: approved.
+2026-10-19 agent (T3b): Commit `3e567ef` records the approved CLI example config change. Status: approved.
 
 ---
 
