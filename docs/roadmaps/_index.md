@@ -7,7 +7,12 @@ here.
 
 ## Ready
 
-_(none)_
+- `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` — **Executable**.
+  Bump `typescript` `~5.5.4` → `~6.0.3` and `@typescript-eslint/*` `^7.18.0`
+  → `^8.70.0`, fix fallout, and re-test the known variance-checker crash
+  residual (T4 updates the Human actions row below in place). Reviewer
+  pass: revise → fixes applied (T4 now depends on T3; T2/T3 split
+  contingency added).
 
 ## Not Ready
 
@@ -24,7 +29,8 @@ _(none)_
 | 2026-09-14 | `2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md` chunk R2 — stray local git tags `@why-ts/core@0.0.2` / `@why-ts/irpc@0.0.2`. | Delete the two tags.                        | R2 cleaner/hardener/reviewer, R3, A1        | orchestrator | **2026-09-15: done** — human deleted both tags, confirmed empty before resuming; R2 approved and merged. |
 | 2026-09-14 | `2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md` chunk C1 — AC-C1a's `cli:build` gap on real CI.                              | Confirm accepting the same F1/B2 precedent. | Closed the open question on C1's Acceptance | orchestrator | **2026-09-15: done** — human confirmed deferred to the separate draft fix roadmap.                       |
 
-| 2026-09-15 | End-of-roadmap qa on `2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md` found: `AGENTS.md`'s Never-tier row for `pnpm changeset publish` is not actually matched by any of the three deny-dangerous hook files (`.zed/settings.json`, `.cursor/hooks/deny-dangerous.js`, `.github/hooks/scripts/deny-dangerous.js`) — they still only match `\b(npm\|pnpm\|yarn)\s+publish\b` / `\bnx\s+release\b`. | Decide whether/when to open a small follow-up roadmap adding a `changeset publish` (and `pnpm run release`) pattern to all three hook files. | Closes a live gap between AGENTS.md's documented Never-tier guarantee and actual enforcement. | orchestrator | open |
+| 2026-09-15 | End-of-roadmap qa on `2609141945_NX_TO_PNPM_MIGRATION_ROADMAP.md` found: `AGENTS.md`'s Never-tier row for `pnpm changeset publish` is not actually matched by any of the three deny-dangerous hook files (`.zed/settings.json`, `.cursor/hooks/deny-dangerous.js`, `.github/hooks/scripts/deny-dangerous.js`) — they still only match `\\b(npm\\|pnpm\\|yarn)\\s+publish\\b` / `\\bnx\\s+release\\b`. | Decide whether/when to open a small follow-up roadmap adding a `changeset publish` (and `pnpm run release`) pattern to all three hook files. | Closes a live gap between AGENTS.md's documented Never-tier guarantee and actual enforcement. | orchestrator | open |
+| 2026-10-19 | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` — initial worktree-safety pause. | Remove form-related unstaged work, then reassess. | T1 resume; later chunks still need source-scope review. | orchestrator | **2026-10-19: resolved** — user-directed cleanup removed the feature directories, supporting Core export, and lockfile additions; T1 resumed. |
 | 2026-09-15 | Migration fully executed locally (12/12 chunks approved, qa pass) but never pushed/merged to a real remote `main`, and never exercised by real CI against `main` (only a throwaway PR branch was CI-tested). `NX_TEARDOWN_ROADMAP.md` is Blocked on this — human judgment call on timing. | Decide whether/when to push this work to real `main` and confirm real CI green there, which would then make `NX_TEARDOWN_ROADMAP.md` eligible. | Unblocks `2609141945_NX_TEARDOWN_ROADMAP.md`. | orchestrator | **2026-09-16: done** — `origin/main` at `66363de` (includes migration + CI fixup commits); real CI on `main` succeeded (run 34978655655). `NX_TEARDOWN_ROADMAP.md` moved to Ready. |
 | 2026-09-15 | `2609142054_CLI_BUILD_STACK_OVERFLOW_FIX_ROADMAP.md` complete (TS1+TS2 approved), but TS1's fix only relocates the underlying TS structural/variance-checker cost: a downstream consumer pattern (`const c: Command<ConcreteOptions, R> = command();`) and `examples-cli`'s own `tsc --noEmit` (not wired to any pnpm/Nx target) still crash with the same `RangeError` once a concrete-options command is registered. See TS1 Agent log and `_archive.md` entry. | Decide whether to open a follow-up roadmap addressing the deeper recursive-generic cost, and/or wire `examples-cli` type-checking into a verify/CI target so a future regression is caught. | Prevents a silent regression of the underlying crash for real consumers; closes the gap between "cli build passes" and "library is usable downstream." | orchestrator | open |
 
@@ -33,9 +39,11 @@ _(none)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent    | Roadmap | Chunk | Branch | Since |
-| -------- | ------- | ----- | ------ | ----- |
-| _(none)_ |         |       |        |       |
+| Agent                    | Roadmap                                       | Chunk | Branch                      | Since      |
+| ------------------------ | --------------------------------------------- | ----- | --------------------------- | ---------- |
+| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T2a   | `roadmap/typescript-v6/T2a` | 2026-10-19 |
+| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T2b   | `roadmap/typescript-v6/T2b` | 2026-10-19 |
+| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T3    | `roadmap/typescript-v6/T3`  | 2026-10-19 |
 
 ## Orchestrator Notes (2026-09-15)
 
@@ -45,10 +53,12 @@ human joins, claim a chunk here before starting:
 
 `2609141945_NX_TEARDOWN_ROADMAP.md` complete 2026-09-16 (1/1 chunk approved: X1, Pack six-pack, commit `d1dd6d2`; end-of-roadmap qa: PASS). See `docs/roadmaps/_archive.md`.
 
-**Execute-all-roadmaps drain status (updated 2026-09-16):** Queue drained. No Ready/Not Ready/Blocked roadmaps remain.
+**Execute-all-roadmaps drain status (2026-09-16):** The queue was drained then; no Ready/Not Ready/Blocked roadmaps remained at that time.
 
 1. `CLI_BUILD_STACK_OVERFLOW_FIX`: Complete, archived.
 2. `NX_TEARDOWN` (X1): Complete, archived — qa PASS.
 3. **Human actions open:** 2 items (deny-dangerous hook gap; TS1 residual follow-up) — see table above.
 
-Queue is empty of Executable unfinished work. Next session: address open Human actions, or author/approve a new roadmap.
+At that time, the queue was empty of Executable unfinished work. The 2026-10-19 update below records the current queue state.
+
+**Execute-all-roadmaps update (2026-10-19):** T1 is approved. Clean worktree evidence split lint fallout into T2a (Core) and T2b (IRPC); T3 remains independently eligible. T2a, T2b, and T3 are claimed for parallel execution. The main-tree IRPC syntax edit remains preserved and excluded.

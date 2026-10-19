@@ -116,24 +116,15 @@ Then the diff to that file is called out explicitly in the chunk's Agent log lin
 - No forced separate `cleaner` hop — this is fallout-fixing work driven by
   a tooling bump, not tidy/rename cleanup. Inline coder cleanup only, per
   two-pack default (`coder → reviewer`).
-- Order: T1 first (foundation). T2 and T3 both depend on T1 and touch
-  disjoint file sets (`.eslintrc.json` + lint-driven source fixes vs.
-  `tsconfig.base.json` + type-driven source fixes) — run them in parallel
-  **only if** their fallout turns out not to touch the same source files
-  (same file, not merely same package); the orchestrator makes this call
-  by reading T1's Agent log fallout report. If it shows overlapping files,
-  run T2 then T3 sequentially instead. T4 depends on **T1 and T3** (not T1
-  alone) — the crash re-test must run against a lib tree that already
-  builds clean under T3's fixes, so a "still crashes" / "fixed" / "changed"
-  finding reflects the TS 6.0.3 bump itself, not unrelated in-flight T3
-  fallout. T5 depends on T1, T2, T3, and T4.
-- If T1's fallout report shows either T2 or T3's fix surface is large
-  (e.g. double-digit file count) or spans clearly distinct concerns (e.g.
-  unrelated error categories, or fallout isolated to one lib vs. spread
-  across all three), split that chunk further (e.g. per-lib or
-  per-error-category sub-chunks) before proceeding — do not absorb
-  everything into one T2 or T3 pass. Record the split (or the decision not
-  to split, with file/concern count as evidence) in T1's Agent log.
+- Order: T1 first (foundation). T2a, T2b, and T3 depend on T1. Their
+  observed fix surfaces are disjoint, so run them in parallel worktrees.
+  T4 depends on **T1 and T3** (not T1 alone) — the crash re-test must run
+  against a lib tree that already builds clean under T3's fixes. T5 depends
+  on T1, T2a, T2b, T3, and T4.
+- If new fallout evidence shows a chunk's fix surface is large (e.g.
+  double-digit files) or spans clearly distinct concerns (e.g. unrelated
+  error categories or separate libs), split that chunk before proceeding.
+  Record the split (or why not) in the roadmap Agent log.
 - Verify with `./scripts/verify.sh` (root) after each chunk; this is the
   same command CI (`.github/workflows/ci.yml`) runs, so a green local run
   is trustworthy evidence.
@@ -168,14 +159,14 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
       `pnpm -r --if-present run test` and capture full output. Do **not**
       fix fallout in this chunk — just produce a report (in the Agent log)
       of which files/packages fail and why (lint rule vs. type error vs.
-      test failure), so T2/T3 know their exact scope.
+      test failure), so T2a/T2b/T3 know their exact scope.
 - [x] Confirm whether the failing files from lint vs. build overlap (needed
-      for the Protocol's parallel-vs-sequential call on T2/T3).
+      for the Protocol's parallel-vs-sequential call on T2a/T2b/T3).
 - [x] Record file/concern counts for the lint-fallout and type-fallout
       surfaces (per-lib breakdown). If either surface is large (e.g. double-
       digit file count) or spans clearly distinct concerns, note in the
-      Agent log that T2 and/or T3 must be split further before proceeding
-      (per Protocol).
+      Agent log that T2a, T2b, and/or T3 must be split further before
+      proceeding (per Protocol).
 
 #### Reviewer checklist
 
@@ -185,7 +176,7 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
       bumps (no unrelated dependency drift smuggled in).
 - [x] The fallout report in the Agent log is concrete (file paths + error
       kind), not "some things broke."
-- [x] No fallout was fixed in this chunk (scope discipline — that's T2/T3).
+- [x] No fallout was fixed in this chunk (scope discipline — that's T2a/T2b/T3).
 
 #### Agent log
 
@@ -213,9 +204,9 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 **Overlap and chunk sizing**
 
-- Raw lint/build/test failures overlap only at `libs/irpc/src/lib/irpc.types.ts`; preserve and exclude this pre-existing user edit from TS6 fallout.
-- Actual lint work is 1 error in `libs/core/src/lib/promise-trigger.ts`; actual TS6 build work is the shared `tsconfig.base.json` options affecting CLI/Core. These fix surfaces are disjoint, so T2 and T3 may run in parallel after T1 review.
-- No further split is indicated: T2 has one failing source file/concern; T3 has one shared config file/concern with 2 option diagnostics. Existing warnings span projects but are not confirmed new fallout; the pre-bump baseline already had 34 warnings.
+- The initial main-tree lint run had a user syntax error at `libs/irpc/src/lib/irpc.types.ts:196`; that parser error masked two additional v8 errors later in the same file.
+- A clean T2 worktree exposed the removed `@typescript-eslint/ban-types` directive at line 109 and `no-empty-object-type` at line 110. The Core `no-unused-expressions` error is in a separate file and concern.
+- Protocol split the lint work into T2a (Core) and T2b (IRPC). Both are disjoint from T3's shared `tsconfig.base.json` fallout and may run in parallel. No further split is indicated within each chunk. Existing warnings are not confirmed new fallout; the pre-bump baseline reported 34 warnings.
 
 2026-10-19 coder (T1 reviewer revision): Removed the duplicated trailing checklist fragment. Classified the `@swc-node/core` peer warning as pre-existing from `git show HEAD:pnpm-lock.yaml`. Verified the `tsconfck`-backed CLI config path with `COREPACK_ENABLE_AUTO_PIN=0 pnpm --filter @why-ts/cli test` (exit 0; 54/54 tests); the recursive test command remains exit 1 only because the preserved IRPC edit fails to parse. Assign T5 to rerun `./scripts/verify.sh` and report the result. If that gate exposes a TS 6 compatibility failure, request human scope guidance before changing unrelated dependency pins. No selected versions or dependency pins changed. Status: in_progress.
 
@@ -223,47 +214,70 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 2026-10-19 agent (T1): Commit `d6e7f0c` records the approved dependency bump and fallout report. Status: approved.
 
+2026-10-19 agent (T1 supplemental): Clean T2 worktree exposed two IRPC v8 lint errors at lines 109–110, masked by the preserved user syntax error at line 196 in the main tree. Revised the plan: split lint work into T2a (Core) and T2b (IRPC). T1 remains approved.
+
 ---
 
-### T2 — Fix lint fallout (typescript-eslint v7→v8)
+### T2a — Fix Core lint fallout (typescript-eslint v7→v8)
 
 **Status:** pending
 
 **Depends on:** T1
 
-**Files:** `.eslintrc.json` (Ask-human tier — call out diff explicitly),
-plus whichever `*.ts` files T1's fallout report identifies as newly
-lint-failing.
+**Files:** `libs/core/src/lib/promise-trigger.ts`.
 
 #### Implementor checklist
 
-- [ ] Fix or explain every new/changed lint failure identified in T1's
-      report. Prefer fixing source over disabling rules.
-- [ ] If a rule config change in `.eslintrc.json` is required (renamed,
-      removed, or behavior-changed rule in v8), make the minimal change
-      and record a one-line rationale in the Agent log (Acceptance A4).
-- [ ] Re-run `pnpm --if-present run lint` until it exits 0.
-- [ ] Explicitly flag the `.eslintrc.json` diff in the Agent log per
-      Acceptance A7.
+- [ ] Resolve the T1-reported `@typescript-eslint/no-unused-expressions` error at line 38 with the smallest behavior-preserving source change.
+- [ ] Run `pnpm --if-present run lint` and confirm this Core error is gone; record any independent T2b errors still present.
+- [ ] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2b fallout, record that evidence without editing T2b files.
 
 #### Reviewer checklist
 
-- [ ] No lint rule silently disabled repo-wide without a recorded
-      rationale (Acceptance A4).
-- [ ] `.eslintrc.json` diff is minimal and matches the stated rationale —
-      flagged explicitly for human review, not buried.
-- [ ] Fixes are scoped to lint fallout only (no drive-by type or logic
-      changes that belong to T3).
+- [ ] The Core no-op expression is removed without changing behavior.
+- [ ] Changes are limited to the declared Core source file and T2a fallout.
+- [ ] Lint and verify results distinguish remaining T2b errors from this chunk.
 
 #### Agent log
 
 <!-- implementor / reviewer append below -->
 
+2026-10-19 agent (former T2): Core fix was made, but lint exposed two IRPC v8 errors. No approval or commit; work will restart under T2a.
+2026-10-19 reviewer (former T2): Revise. The parser error in the main tree masked distinct IRPC lint fallout. Protocol split the Core and IRPC concerns into T2a and T2b.
+
+---
+
+### T2b — Fix IRPC lint fallout (typescript-eslint v7→v8)
+
+**Status:** pending
+
+**Depends on:** T1
+
+**Files:** `libs/irpc/src/lib/irpc.types.ts`.
+
+#### Implementor checklist
+
+- [ ] Resolve the removed `@typescript-eslint/ban-types` inline directive and the `no-empty-object-type` error at lines 109–110 while preserving the intended type semantics.
+- [ ] Run `pnpm --if-present run lint`; record this file's result and any independent T2a error still present.
+- [ ] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2a fallout, record that evidence without editing T2a files.
+
+#### Reviewer checklist
+
+- [ ] Both v8 lint errors are resolved without weakening the type contract.
+- [ ] No lint rule is silently disabled repo-wide; any config change has a one-line rationale.
+- [ ] Changes are limited to the declared IRPC source file and T2b fallout.
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+2026-10-19 agent (T2b scope): Clean T2 worktree exposed the obsolete directive and `no-empty-object-type` errors at lines 109–110. This chunk isolates that IRPC concern.
+
 ---
 
 ### T3 — Fix type-check/build fallout (TypeScript 5.5 → 6.0.3)
 
-**Status:** pending
+**Status:** in_progress
 
 **Depends on:** T1
 
@@ -279,6 +293,9 @@ call out diff explicitly if touched).
       hard-deprecates a current setting (e.g. `moduleResolution: "node"`).
       If touched, keep the change minimal and record the exact error that
       forced it.
+- [ ] Preserve unrelated TypeScript diagnostics. Do not apply broad
+      `ignoreDeprecations: "6.0"` without an independent guard for TS2880;
+      the reviewer reproduced that it suppresses the import-assertion error.
 - [ ] Re-run `pnpm -r --if-present run build` until it exits 0 for all 3
       libs.
 - [ ] Check each lib's emitted `.d.ts` (`dist/libs/*/src/index.d.ts` or
@@ -291,14 +308,19 @@ call out diff explicitly if touched).
 
 - [ ] `tsconfig.base.json` untouched unless the Agent log states the exact
       TS 6.0.3 error that forced the change.
+- [ ] The config does not suppress unrelated diagnostics such as TS2880; if
+      a broad ignore is unavoidable, an independent guard is verified.
 - [ ] `.d.ts` shape-change finding (or "no change") is recorded per
       Acceptance A6, with a stated changeset decision.
 - [ ] Fixes are scoped to type-check/build fallout only (no drive-by lint
-      rule changes that belong to T2).
+      changes that belong to T2a/T2b).
 
 #### Agent log
 
 <!-- implementor / reviewer append below -->
+
+2026-10-19 agent (T3 first attempt): Added `ignoreDeprecations: "6.0"`; builds passed and declarations matched TS5.5.4, but this attempt is not approved.
+2026-10-19 reviewer (T3): Revise. The broad setting also suppresses TS2880 for deprecated import assertions. Preserve that diagnostic with narrower config or an independently verified guard; no commit.
 
 ---
 
@@ -343,7 +365,7 @@ if the existing Human actions row needs closing or updating.
 
 **Status:** pending
 
-**Depends on:** T1, T2, T3, T4
+**Depends on:** T1, T2a, T2b, T3, T4
 
 **Files:** none expected beyond this roadmap file and, if not already done
 in T4, `docs/roadmaps/_index.md`.
@@ -354,9 +376,12 @@ in T4, `docs/roadmaps/_index.md`.
       it exits 0 (Acceptance A3).
 - [ ] Confirm every prior chunk's Ask-human-tier diff (`.eslintrc.json`,
       `tsconfig.base.json` if touched) is clearly flagged for the human,
-      either in this chunk's Agent log or by reference to T2/T3's logs.
+      either in this chunk's Agent log or by reference to T2a/T2b/T3 logs.
 - [ ] Confirm the changeset decision from T3 (Acceptance A6) is final and
       consistent (no changeset added unless `.d.ts` shape changed).
+- [ ] Re-run `./scripts/verify.sh` and record whether the `tsconfck` TypeScript
+      peer warning affects the tested `vite-tsconfig-paths` path; seek human
+      scope guidance before changing unrelated dependency pins if it fails.
 - [ ] Move this roadmap to `docs/roadmaps/_archive.md` per the project's
       roadmap lifecycle, once all chunks are approved.
 
