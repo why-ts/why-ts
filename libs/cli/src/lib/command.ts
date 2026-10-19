@@ -1,6 +1,7 @@
 import {
+  CamelCasedKey,
+  Command,
   CommandOutput,
-  ExtendedOptions,
   Handler,
   HandlerReplacement,
   Metadata,
@@ -14,6 +15,7 @@ import defaultPrompter from './config/prompter.default';
 import { type Option } from './option.types';
 import {
   Aliasable,
+  Aliased,
   EmptyObject,
   GenericOptions,
   HandlerInput,
@@ -22,21 +24,23 @@ import {
 } from './types';
 import { extractAliases, noop } from './util';
 
-export function command(metadata: Metadata = {}) {
+export function command(metadata: Metadata = {}): Command {
   return new CommandImpl(noop, {}, metadata);
 }
 
 class CommandImpl<
   Options extends GenericOptions = EmptyObject,
   HandlerResult = void,
-> {
+> implements Command<Options, HandlerResult> {
   constructor(
     private handler: Handler<Options, HandlerResult>,
     public readonly options: Options,
     public readonly metadata: Metadata,
   ) {}
 
-  meta(metadata: Metadata | ((current: Metadata) => Metadata)) {
+  meta(
+    metadata: Metadata | ((current: Metadata) => Metadata),
+  ): Command<Options, HandlerResult> {
     if (typeof metadata === 'function') metadata = metadata(this.metadata);
 
     return new CommandImpl(this.handler, this.options, {
@@ -45,7 +49,10 @@ class CommandImpl<
     });
   }
 
-  option<N extends string, O extends Option>(name: Aliasable<N>, option: O) {
+  option<N extends string, O extends Option>(
+    name: Aliasable<N>,
+    option: O,
+  ): Command<Options & CamelCasedKey<N, Aliased<O>>, HandlerResult> {
     const { name: n, aliases } = extractAliases(name);
 
     return new CommandImpl(
@@ -53,12 +60,14 @@ class CommandImpl<
       {
         ...this.options,
         [n]: { aliases, value: option },
-      } as ExtendedOptions<Options, N, O>,
+      } as Options & CamelCasedKey<N, Aliased<O>>,
       this.metadata,
     );
   }
 
-  handle<R>(handler: HandlerReplacement<Options, HandlerResult, R>) {
+  handle<R>(
+    handler: HandlerReplacement<Options, HandlerResult, R>,
+  ): Command<Options, R> {
     return new CommandImpl(
       (input: HandlerInput<ParsedArgsFromOptions<Options>>) =>
         handler(input, this.handler),

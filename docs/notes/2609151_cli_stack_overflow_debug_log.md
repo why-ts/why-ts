@@ -382,3 +382,38 @@ COREPACK_ENABLE_AUTO_PIN=0 pnpm install --no-frozen-lockfile
 node node_modules/typescript/bin/tsc -p libs/cli/tsconfig.lib.json --noEmit
 git worktree remove --force .worktrees/ts-debug
 ```
+
+## 9. Follow-up (2026-10-19): root cause pinned, `Command` annotations restored
+
+Root cause: TypeScript measures a generic alias's variance the first time it
+relates or infers between two instantiations of it. Measuring type-fest's
+`CamelCase` overflows the stack. Repro without any why-ts types:
+
+```ts
+import type { CamelCase } from 'type-fest';
+export function f<X extends string, Y extends X>(a: CamelCase<Y>): CamelCase<X> {
+  return a;
+}
+```
+
+`Command` vs `CommandImpl` only triggers it. Removing the annotations (commit
+`4828e36`) hid the crash in `cli`; `examples/cli` (`tsc -p
+examples/cli/tsconfig.app.json --noEmit`) still crashed via
+`program.command()`'s `C extends Command<any, unknown>` constraint.
+
+Evidence: `tmp/variance-probe.cjs` (gitignored) patches a temp copy of
+`typescript.js` to log each `getVariancesWorker` symbol, the checker's
+`currentNode`, and the first `CamelCase` relate/infer pair.
+
+Fix: `CamelCasedKey<in out N, V> = { [_ in NoInfer<CamelCase<N>>]: V }` in
+`libs/cli/src/lib/command.types.ts`, inlined as `Options & CamelCasedKey<...>`.
+
+- `in out` alone: still crashes (inference reaches `CamelCase` through
+  `inferFromGenericMappedTypes` after intersection members are matched).
+- `NoInfer` alone: still crashes (relation measures the wrapper's variance).
+- Wrapping the intersection in an alias (`ExtendedOptions`): still crashes
+  (measuring that alias's variance relates `CamelCase` instantiations).
+- Indexed-access or conditional wrappers around `CamelCase`: still crash.
+
+Result: `implements Command` and the `Command<...>` return annotations are
+restored; `cli` lib, spec, and `examples/cli` type-check; `cli` tests 54/54.
