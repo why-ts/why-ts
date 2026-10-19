@@ -221,6 +221,8 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 2026-10-19 agent (T1 reviewer): Verdict: approve. Independently checked exact pins, lockfile scope, fallout evidence, and no fallout fixes. Residuals: `tsconfck` declares a TS5 peer range despite passing CLI tests under TS6; T5 will rerun full verify. The SWC peer warning predates T1. The preserved IRPC user edit still prevents recursive builds/tests. Status: approved.
 
+2026-10-19 agent (T1): Commit `d6e7f0c` records the approved dependency bump and fallout report. Status: approved.
+
 ---
 
 ### T2 — Fix lint fallout (typescript-eslint v7→v8)
