@@ -116,11 +116,11 @@ Then the diff to that file is called out explicitly in the chunk's Agent log lin
 - No forced separate `cleaner` hop — this is fallout-fixing work driven by
   a tooling bump, not tidy/rename cleanup. Inline coder cleanup only, per
   two-pack default (`coder → reviewer`).
-- Order: T1 first (foundation). T2a, T2b, and T3 depend on T1. Their
-  observed fix surfaces are disjoint, so run them in parallel worktrees.
-  T4 depends on **T1 and T3** (not T1 alone) — the crash re-test must run
-  against a lib tree that already builds clean under T3's fixes. T5 depends
-  on T1, T2a, T2b, T3, and T4.
+- Order: T1 first. T2a, T2b, and T3 depend on T1; their observed fix
+  surfaces are disjoint, so run them in parallel worktrees. T3b depends on
+  T3 and fixes the example config. T4 depends on T1, T3, and T3b; the crash
+  re-test runs after library and example config fallout is clear. T5 depends
+  on T1, T2a, T2b, T3, T3b, and T4.
 - If new fallout evidence shows a chunk's fix surface is large (e.g.
   double-digit files) or spans clearly distinct concerns (e.g. unrelated
   error categories or separate libs), split that chunk before proceeding.
@@ -249,6 +249,8 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 2026-10-19 reviewer (T2a): Verdict: approve. Confirmed only the Core no-op expression was removed; target lint passes. Residual: global lint/verify awaits T2b; two pre-existing `no-explicit-any` warnings remain. Status: approved.
 
+2026-10-19 agent (T2a): Commit `f619093` records the approved Core lint fix. Status: approved.
+
 ---
 
 ### T2b — Fix IRPC lint fallout (typescript-eslint v7→v8)
@@ -279,6 +281,8 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 2026-10-19 agent (T2b): Replaced `{}` with `NonNullable<unknown>` to preserve the non-nullish event payload domain and removed the obsolete directive. Evidence: targeted ESLint exit 0 (0 errors, 4 existing warnings); full lint exit 1 with only the separate T2a error at `libs/core/src/lib/promise-trigger.ts:38`; `./scripts/verify.sh` exit 1 at lint with the same T2a error. Status: in_progress.
 
 2026-10-19 reviewer (T2b): Verdict: approve. Type check confirms `NonNullable<unknown>` preserves non-nullish semantics; targeted lint passes. Residual: after T3 fixes, compare emitted IRPC declarations and record Acceptance A6/changeset disposition; current build stops at TS5101/TS5107. Status: approved.
+
+2026-10-19 agent (T2b): Commit `903be86` records the approved IRPC lint fix. Status: approved.
 
 ---
 
@@ -332,20 +336,50 @@ call out diff explicitly if touched).
 
 2026-10-19 reviewer (T3): Verdict: approve. Independently verified all three library builds, path aliases, CommonJS emit, and unchanged declarations. Residual: `examples/cli` inherits deprecated `moduleResolution: node10`; `pnpm exec tsc -p examples/cli/tsconfig.app.json --noEmit` exits 2 with TS5107, blocking T4's variance check until addressed. Full verify awaits T2a/T2b. Status: approved.
 
+2026-10-19 agent (T3): Commit `7a68987` records the approved library config changes. Status: approved.
+
+---
+
+### T3b — Update the CLI example config for TypeScript 6
+
+**Status:** pending
+
+**Depends on:** T3
+
+**Files:** `examples/cli/tsconfig.app.json`.
+
+#### Implementor checklist
+
+- [ ] Resolve TS5107 in the example config with nondeprecated paired module/resolution settings; preserve CommonJS behavior.
+- [ ] Run `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TypeScript 6.0.3. Confirm the checker reaches the source and record type/RangeError results.
+- [ ] Run `./scripts/verify.sh` per project Protocol and record the full result.
+
+#### Reviewer checklist
+
+- [ ] The example type-check no longer fails with TS5107 and reaches the intended TypeScript checks.
+- [ ] The module/resolution pair preserves the existing CommonJS runtime intent.
+- [ ] Changes stay within the declared example config and T3b fallout.
+
+#### Agent log
+
+<!-- implementor / reviewer append below -->
+
+2026-10-19 agent (T3b scope): T3 review found the example app still inherits deprecated `moduleResolution: node10`; T4 cannot test the variance fix until TS5107 is removed.
+
 ---
 
 ### T4 — Verify the `Command` variance fix under TS 6.0.3
 
 **Status:** pending
 
-**Depends on:** T1, T3
+**Depends on:** T1, T3, T3b
 
 **Files:** none expected (evidence-gathering only); `docs/roadmaps/_index.md`
 if the existing Human actions row needs closing or updating.
 
 #### Implementor checklist
 
-- [ ] After T3's lib fixes have landed, run `pnpm --filter @why-ts/cli build`
+- [ ] After T3 and T3b have landed, run `pnpm --filter @why-ts/cli build`
       and `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TS 6.0.3.
       Confirm neither crashes with `RangeError`; the `Command` annotations
       must remain explicit.
@@ -375,7 +409,7 @@ if the existing Human actions row needs closing or updating.
 
 **Status:** pending
 
-**Depends on:** T1, T2a, T2b, T3, T4
+**Depends on:** T1, T2a, T2b, T3, T3b, T4
 
 **Files:** none expected beyond this roadmap file and, if not already done
 in T4, `docs/roadmaps/_index.md`.
@@ -389,6 +423,8 @@ in T4, `docs/roadmaps/_index.md`.
       either in this chunk's Agent log or by reference to T2a/T2b/T3 logs.
 - [ ] Confirm the changeset decision from T3 (Acceptance A6) is final and
       consistent (no changeset added unless `.d.ts` shape changed).
+- [ ] After T2b, compare IRPC declarations against the TS5.5.4 baseline and
+      record whether `NonNullable<unknown>` changes the public shape/changeset decision.
 - [ ] Re-run `./scripts/verify.sh` and record whether the `tsconfck` TypeScript
       peer warning affects the tested `vite-tsconfig-paths` path; seek human
       scope guidance before changing unrelated dependency pins if it fails.

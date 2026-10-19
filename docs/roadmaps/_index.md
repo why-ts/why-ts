@@ -41,9 +41,7 @@ human joins, claim a chunk here before starting:
 
 | Agent                    | Roadmap                                       | Chunk | Branch                      | Since      |
 | ------------------------ | --------------------------------------------- | ----- | --------------------------- | ---------- |
-| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T2a   | `roadmap/typescript-v6/T2a` | 2026-10-19 |
-| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T2b   | `roadmap/typescript-v6/T2b` | 2026-10-19 |
-| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T3    | `roadmap/typescript-v6/T3`  | 2026-10-19 |
+| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T3b   | `roadmap/typescript-v6/T3b` | 2026-10-19 |
 
 ## Orchestrator Notes (2026-09-15)
 
@@ -61,4 +59,4 @@ human joins, claim a chunk here before starting:
 
 At that time, the queue was empty of Executable unfinished work. The 2026-10-19 update below records the current queue state.
 
-**Execute-all-roadmaps update (2026-10-19):** T1 is approved. Clean worktree evidence split lint fallout into T2a (Core) and T2b (IRPC); T3 remains independently eligible. T2a, T2b, and T3 are claimed for parallel execution. The main-tree IRPC syntax edit remains preserved and excluded.
+**Execute-all-roadmaps update (2026-10-19):** T1, T2a, T2b, and T3 are approved and integrated. T3b is claimed to clear TS5107 in `examples/cli` before T4. The main-tree IRPC syntax edit remains preserved and excluded.
