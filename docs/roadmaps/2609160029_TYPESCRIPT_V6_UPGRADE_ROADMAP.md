@@ -412,7 +412,7 @@ if the existing Human actions row needs closing or updating.
 2026-10-19 agent (T4): Verified the restored `Command` interface annotations under TypeScript 6.0.3; no source/config changes. Evidence: `pnpm exec tsc --version` → `Version 6.0.3`; `pnpm --filter @why-ts/cli build` → exit 0 (tsc emit and CLI dist copy completed); `npx tsc -p examples/cli/tsconfig.app.json --noEmit` → exit 0 (`Command executed successfully`). Neither T4 check reported a `RangeError` or type errors. `Command` return annotations remain explicit: `meta`, `option`, `handle`, and `run` in `libs/cli/src/lib/command.types.ts`. `./scripts/verify.sh` → exit 1 at lint: 1 parser error at `libs/irpc/src/lib/irpc.types.ts:195:13` (`Type expected`) from the preserved user edit `type Empty = ;`; 36 warnings. Tests and builds did not run in this verify invocation. Closed the existing CLI stack-overflow Human actions row in `_index.md` because both T4 checks passed. Status: in_progress.
 
 2026-10-19 reviewer (T4): Verdict: approve. Findings: critical none; important none; nit none. Evidence: `pnpm exec tsc --version`, both T4 checks, `git diff`, and `libs/cli/src/lib/command.types.ts`. Residual risks: coder-reported `./scripts/verify.sh` failure at lint from preserved IRPC edit `type Empty = ;` (36 warnings); full verify not rerun by reviewer, tests/build were not reached in coder's verify run. Status: approved.
-2026-10-19 agent (T4): Approved and committing T4's roadmap/index evidence; the IRPC user edit remains excluded.
+2026-10-19 agent (T4): Commit `3d7cf8b` records the approved T4 verification evidence and closes the existing CLI stack-overflow Human actions row. Status: approved.
 
 ---
 

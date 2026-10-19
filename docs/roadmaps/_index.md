@@ -39,9 +39,9 @@ _(none)_
 Solo project today (see `AGENTS.md` § Parallel work). If a second agent or
 human joins, claim a chunk here before starting:
 
-| Agent                    | Roadmap                                       | Chunk | Branch | Since      |
-| ------------------------ | --------------------------------------------- | ----- | ------ | ---------- |
-| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T4    | `main` | 2026-10-19 |
+| Agent                    | Roadmap                                       | Chunk | Branch                     | Since      |
+| ------------------------ | --------------------------------------------- | ----- | -------------------------- | ---------- |
+| zed-agent (orchestrator) | `2609160029_TYPESCRIPT_V6_UPGRADE_ROADMAP.md` | T5    | `roadmap/typescript-v6/T5` | 2026-10-19 |
 
 ## Orchestrator Notes (2026-09-15)
 
@@ -59,4 +59,4 @@ human joins, claim a chunk here before starting:
 
 At that time, the queue was empty of Executable unfinished work. The 2026-10-19 update below records the current queue state.
 
-**Execute-all-roadmaps update (2026-10-19):** T1, T2a, T2b, T3, and T3b are approved and integrated. T4 is claimed on `main`; T5 follows after T4. The main-tree IRPC syntax edit remains preserved and excluded.
+**Execute-all-roadmaps update (2026-10-19):** T1, T2a, T2b, T3, T3b, and T4 are approved and integrated. T5 is claimed on `roadmap/typescript-v6/T5` in a clean worktree; the main-tree IRPC syntax edit remains preserved and excluded.
