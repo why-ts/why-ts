@@ -34,5 +34,3 @@ export function createPromiseTrigger<T>(): PromiseTrigger<T> {
     },
   } as const;
 }
-
-Promise.allSettled;

@@ -220,7 +220,7 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 ### T2a — Fix Core lint fallout (typescript-eslint v7→v8)
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** T1
 
@@ -228,15 +228,15 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 #### Implementor checklist
 
-- [ ] Resolve the T1-reported `@typescript-eslint/no-unused-expressions` error at line 38 with the smallest behavior-preserving source change.
-- [ ] Run `pnpm --if-present run lint` and confirm this Core error is gone; record any independent T2b errors still present.
-- [ ] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2b fallout, record that evidence without editing T2b files.
+- [x] Resolve the T1-reported `@typescript-eslint/no-unused-expressions` error at line 38 with the smallest behavior-preserving source change.
+- [x] Run `pnpm --if-present run lint` and confirm this Core error is gone; record any independent T2b errors still present.
+- [x] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2b fallout, record that evidence without editing T2b files.
 
 #### Reviewer checklist
 
-- [ ] The Core no-op expression is removed without changing behavior.
-- [ ] Changes are limited to the declared Core source file and T2a fallout.
-- [ ] Lint and verify results distinguish remaining T2b errors from this chunk.
+- [x] The Core no-op expression is removed without changing behavior.
+- [x] Changes are limited to the declared Core source file and T2a fallout.
+- [x] Lint and verify results distinguish remaining T2b errors from this chunk.
 
 #### Agent log
 
@@ -244,6 +244,10 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 2026-10-19 agent (former T2): Core fix removed the no-op expression, but lint still exited 1 with IRPC errors at lines 109–110. `./scripts/verify.sh` stopped at lint; no approval or commit.
 2026-10-19 reviewer (former T2): Revise. The parser error in the main tree masked distinct IRPC lint fallout. Protocol split the Core and IRPC concerns into T2a and T2b.
+
+2026-10-19 agent (T2a fresh coder): Removed the standalone `Promise.allSettled;` no-op expression; no trigger logic changed. Evidence: `pnpm --if-present run lint` exits 1 with 2 errors, both in pending T2b `libs/irpc/src/lib/irpc.types.ts` lines 109–110; Core's prior `no-unused-expressions` error is absent. `./scripts/verify.sh` exits 1 at its lint step on those same T2b errors, so tests/build did not run. Did not edit IRPC or config. Status: in_progress.
+
+2026-10-19 reviewer (T2a): Verdict: approve. Confirmed only the Core no-op expression was removed; target lint passes. Residual: global lint/verify awaits T2b; two pre-existing `no-explicit-any` warnings remain. Status: approved.
 
 ---
 
