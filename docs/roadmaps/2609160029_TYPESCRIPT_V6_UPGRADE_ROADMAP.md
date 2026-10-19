@@ -375,7 +375,7 @@ call out diff explicitly if touched).
 
 ### T4 — Verify the `Command` variance fix under TS 6.0.3
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** T1, T3, T3b
 
@@ -384,29 +384,35 @@ if the existing Human actions row needs closing or updating.
 
 #### Implementor checklist
 
-- [ ] After T3 and T3b have landed, run `pnpm --filter @why-ts/cli build`
+- [x] After T3 and T3b have landed, run `pnpm --filter @why-ts/cli build`
       and `npx tsc -p examples/cli/tsconfig.app.json --noEmit` under TS 6.0.3.
-      Confirm neither crashes with `RangeError`; the `Command` annotations
-      must remain explicit.
-- [ ] Record each exact command and its result in the Agent log, including
+      Both exited 0 without `RangeError`; the `Command` annotations remain
+      explicit.
+- [x] Record each exact command and its result in the Agent log, including
       any type errors separate from stack-overflow failures.
-- [ ] Update the existing `docs/roadmaps/_index.md` Human actions row in
-      place: close it if both checks pass, or state the concrete residual
-      if either fails. Do not duplicate the row.
-- [ ] Do not redesign the type fix without evidence that TS 6.0.3 regresses
-      it (Decisions).
+- [x] Update the existing `docs/roadmaps/_index.md` Human actions row in
+      place: closed because both checks passed. No duplicate row added.
+- [x] Do not redesign the type fix without evidence that TS 6.0.3 regresses
+      it (Decisions); both T4 checks passed and source was not changed.
 
 #### Reviewer checklist
 
-- [ ] Both checks have concrete, reproducible command/result evidence.
-- [ ] `_index.md` was updated in place (row closed if resolved, otherwise
+- [x] Both checks have concrete, reproducible command/result evidence.
+- [x] `_index.md` was updated in place (row closed if resolved, otherwise
       updated with the specific residual; no duplicate row).
-- [ ] `Command` interface return annotations remain restored; any change to
+- [x] `Command` interface return annotations remain restored; any change to
       `CamelCasedKey` is tied to a reproduced TS 6.0.3 failure.
 
 #### Agent log
 
 <!-- implementor / reviewer append below -->
+
+2026-10-19 agent (T4): Pack: two-pack. End-qa is not required (`end-qa` unset and not requested). T1, T3, and T3b are approved; T4 is the sole eligible chunk. Coder starting on `main`; preserved IRPC edit remains excluded.
+
+2026-10-19 agent (T4): Verified the restored `Command` interface annotations under TypeScript 6.0.3; no source/config changes. Evidence: `pnpm exec tsc --version` → `Version 6.0.3`; `pnpm --filter @why-ts/cli build` → exit 0 (tsc emit and CLI dist copy completed); `npx tsc -p examples/cli/tsconfig.app.json --noEmit` → exit 0 (`Command executed successfully`). Neither T4 check reported a `RangeError` or type errors. `Command` return annotations remain explicit: `meta`, `option`, `handle`, and `run` in `libs/cli/src/lib/command.types.ts`. `./scripts/verify.sh` → exit 1 at lint: 1 parser error at `libs/irpc/src/lib/irpc.types.ts:195:13` (`Type expected`) from the preserved user edit `type Empty = ;`; 36 warnings. Tests and builds did not run in this verify invocation. Closed the existing CLI stack-overflow Human actions row in `_index.md` because both T4 checks passed. Status: in_progress.
+
+2026-10-19 reviewer (T4): Verdict: approve. Findings: critical none; important none; nit none. Evidence: `pnpm exec tsc --version`, both T4 checks, `git diff`, and `libs/cli/src/lib/command.types.ts`. Residual risks: coder-reported `./scripts/verify.sh` failure at lint from preserved IRPC edit `type Empty = ;` (36 warnings); full verify not rerun by reviewer, tests/build were not reached in coder's verify run. Status: approved.
+2026-10-19 agent (T4): Approved and committing T4's roadmap/index evidence; the IRPC user edit remains excluded.
 
 ---
 
