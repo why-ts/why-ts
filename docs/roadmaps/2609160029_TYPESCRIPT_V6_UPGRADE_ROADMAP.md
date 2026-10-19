@@ -242,7 +242,7 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 <!-- implementor / reviewer append below -->
 
-2026-10-19 agent (former T2): Core fix was made, but lint exposed two IRPC v8 errors. No approval or commit; work will restart under T2a.
+2026-10-19 agent (former T2): Core fix removed the no-op expression, but lint still exited 1 with IRPC errors at lines 109–110. `./scripts/verify.sh` stopped at lint; no approval or commit.
 2026-10-19 reviewer (former T2): Revise. The parser error in the main tree masked distinct IRPC lint fallout. Protocol split the Core and IRPC concerns into T2a and T2b.
 
 ---
@@ -319,8 +319,8 @@ call out diff explicitly if touched).
 
 <!-- implementor / reviewer append below -->
 
-2026-10-19 agent (T3 first attempt): Added `ignoreDeprecations: "6.0"`; builds passed and declarations matched TS5.5.4, but this attempt is not approved.
-2026-10-19 reviewer (T3): Revise. The broad setting also suppresses TS2880 for deprecated import assertions. Preserve that diagnostic with narrower config or an independently verified guard; no commit.
+2026-10-19 agent (T3 first attempt): `ignoreDeprecations: "6.0"` cleared TS5101/TS5107; recursive build passed and declarations matched TS5.5.4 (CLI 27, Core 7, IRPC 12). `./scripts/verify.sh` stopped at T2 lint. Not approved.
+2026-10-19 reviewer (T3): Revise. A TypeScript API check showed the broad setting also suppresses TS2880 for import assertions; preserve TS2880 with narrower config or an independently verified guard. No commit.
 
 ---
 
