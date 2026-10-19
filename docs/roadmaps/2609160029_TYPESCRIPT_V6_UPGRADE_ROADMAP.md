@@ -253,7 +253,7 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 ### T2b — Fix IRPC lint fallout (typescript-eslint v7→v8)
 
-**Status:** pending
+**Status:** approved
 
 **Depends on:** T1
 
@@ -261,21 +261,24 @@ _The user approved this roadmap as **Executable**. Chunks may now be executed._
 
 #### Implementor checklist
 
-- [ ] Resolve the removed `@typescript-eslint/ban-types` inline directive and the `no-empty-object-type` error at lines 109–110 while preserving the intended type semantics.
-- [ ] Run `pnpm --if-present run lint`; record this file's result and any independent T2a error still present.
-- [ ] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2a fallout, record that evidence without editing T2a files.
+- [x] Resolve the removed `@typescript-eslint/ban-types` inline directive and the `no-empty-object-type` error at lines 109–110 while preserving the intended type semantics.
+- [x] Run `pnpm --if-present run lint`; record this file's result and any independent T2a error still present.
+- [x] Run `./scripts/verify.sh` per project Protocol. If it stops on pending T2a fallout, record that evidence without editing T2a files.
 
 #### Reviewer checklist
 
-- [ ] Both v8 lint errors are resolved without weakening the type contract.
-- [ ] No lint rule is silently disabled repo-wide; any config change has a one-line rationale.
-- [ ] Changes are limited to the declared IRPC source file and T2b fallout.
+- [x] Both v8 lint errors are resolved without weakening the type contract.
+- [x] No lint rule is silently disabled repo-wide; any config change has a one-line rationale.
+- [x] Changes are limited to the declared IRPC source file and T2b fallout.
 
 #### Agent log
 
 <!-- implementor / reviewer append below -->
 
 2026-10-19 agent (T2b scope): Clean T2 worktree exposed the obsolete directive and `no-empty-object-type` errors at lines 109–110. This chunk isolates that IRPC concern.
+2026-10-19 agent (T2b): Replaced `{}` with `NonNullable<unknown>` to preserve the non-nullish event payload domain and removed the obsolete directive. Evidence: targeted ESLint exit 0 (0 errors, 4 existing warnings); full lint exit 1 with only the separate T2a error at `libs/core/src/lib/promise-trigger.ts:38`; `./scripts/verify.sh` exit 1 at lint with the same T2a error. Status: in_progress.
+
+2026-10-19 reviewer (T2b): Verdict: approve. Type check confirms `NonNullable<unknown>` preserves non-nullish semantics; targeted lint passes. Residual: after T3 fixes, compare emitted IRPC declarations and record Acceptance A6/changeset disposition; current build stops at TS5101/TS5107. Status: approved.
 
 ---
 

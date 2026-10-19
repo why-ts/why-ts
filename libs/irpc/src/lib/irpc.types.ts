@@ -106,8 +106,7 @@ export interface MethodBase {
   [key: string]: ((...args: any[]) => unknown) | MethodBase;
 }
 interface EventBase {
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  [key: string]: {} | Nested<EventBase>;
+  [key: string]: NonNullable<unknown> | Nested<EventBase>;
 }
 type WatchBase = Record<string, unknown>;
 
